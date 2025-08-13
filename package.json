@@ -1,0 +1,19 @@
+{
+  "name": "config-service-next",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "lint": "echo \"no lint configured\""
+  },
+  "dependencies": {
+    "jose": "^6.0.12",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.8.0",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
