@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { clearAuthCookie } from "../../../../lib/auth";
-
-export async function GET() {
-  clearAuthCookie();
-  return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_BASE_URL || "https://estety-cloud-config-app.vercel.app/"));
+export async function GET(req) {
+  const res = NextResponse.redirect(new URL("/login", req.url));
+  res.cookies.set("config_token", "", { httpOnly: true, path: "/", maxAge: 0 });
+  return res;
 }

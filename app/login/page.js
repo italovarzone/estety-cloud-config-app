@@ -1,36 +1,43 @@
+import Imagem from "../components/Imagem";
+
 export default function LoginPage({ searchParams }) {
   const err = searchParams?.e;
   const presetUser = searchParams?.u || "";
-
   const msg =
-    err === "invalid" ? "Credenciais inválidas."
-    : err === "missing" ? "Usuário e senha são obrigatórios."
-    : null;
+    err === "invalid"
+      ? "Credenciais inválidas."
+      : err === "missing"
+      ? "Usuário e senha são obrigatórios."
+      : null;
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f6f6f6" }}>
-      <form action="/api/auth/login" method="post"
-            style={{ background: "#fff", padding: 24, borderRadius: 12, width: 360, boxShadow: "0 6px 24px rgba(0,0,0,.08)" }}>
-        <h1 style={{ margin: 0, marginBottom: 12, fontSize: 22 }}>Config Service • Login</h1>
+    <div className="min-h-screen grid place-items-center">
+      <form action="/api/auth/login" method="post" className="card w-full max-w-md space-y-4">
+        <div className="flex items-center justify-center gap-3">
+          {/* ícone de configuração grande */}
+          <Imagem className="h-14 w-auto" src="/engrenagem.png" alt="Engrenagem" />
+        </div>
+
+        <h2 className="text-2xl font-semibold text-center">EC Configurações</h2>
 
         {msg && (
-          <div role="alert" style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: "#ffeae8", color: "#771d1d" }}>
+          <div role="alert" className="rounded-xl bg-red-50 text-red-700 px-3 py-2">
             {msg}
           </div>
         )}
 
-        <label htmlFor="username">Usuário</label>
-        <input id="username" name="username" defaultValue={presetUser}
-               required style={{ width: "100%", padding: 10, marginBottom: 10 }} />
+        <div className="space-y-1">
+          <label className="label" htmlFor="username">Usuário</label>
+          <input className="input" id="username" name="username" defaultValue={presetUser} autoFocus required />
+        </div>
 
-        <label htmlFor="password">Senha</label>
-        <input id="password" name="password" type="password"
-               required style={{ width: "100%", padding: 10, marginBottom: 16 }} />
+        <div className="space-y-1">
+          <label className="label" htmlFor="password">Senha</label>
+          <input className="input" id="password" type="password" name="password" required />
+        </div>
 
-        <button type="submit" style={{ width: "100%", padding: 12, border: 0, background: "#222", color: "#fff", borderRadius: 8 }}>
-          Entrar
-        </button>
+        <button className="btn btn-primary w-full mt-2" type="submit">Entrar</button>
       </form>
-    </main>
+    </div>
   );
 }

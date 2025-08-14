@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../../lib/mongo";
 
@@ -24,10 +25,7 @@ export async function GET(req) {
   if (!t) return new NextResponse("Tenant não encontrado", { status: 404 });
 
   return NextResponse.json({
-    tenantId: t.tenantId,
-    name: t.name,
-    slug: t.slug,
-    dbName: t.dbName,
-    mongoUri: t.mongoUri || null
+    tenantId: t.tenantId, name: t.name, slug: t.slug,
+    dbName: t.dbName, mongoUri: t.mongoUri || null
   });
 }

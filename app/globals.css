@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f6f6f6;
+}
+
+body { @apply bg-[var(--bg)] text-zinc-900; }
+
+.container { @apply max-w-6xl mx-auto px-4; }
+.card { @apply bg-white rounded-2xl shadow-sm p-4 md:p-6; }
+.btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-medium transition; }
+.btn-primary { @apply bg-zinc-900 text-white hover:bg-zinc-800; }
+.btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+.input { @apply w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-300; }
+.label { @apply text-sm font-medium text-zinc-700; }
+.table { @apply w-full text-sm; }
+.th, .td { @apply px-3 py-2 text-left; }
+.tr { @apply border-t border-zinc-100; }
+.badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold; }
+.badge-green { @apply bg-emerald-100 text-emerald-800; }
+.badge-gray { @apply bg-zinc-100 text-zinc-800; }
+.navlink { @apply text-sm text-zinc-600 hover:text-zinc-900; }
