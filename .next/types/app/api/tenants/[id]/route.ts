@@ -1,4 +1,4 @@
-// File: C:\Desenv\IPV\estety-cloud-config-app\app\api\tenants\[id]\route.js
+// File: C:\Desenv\estety-cloud-config-app\app\api\tenants\[id]\route.js
 import * as entry from '../../../../../../app/api/tenants/[id]/route.js'
 import type { NextRequest } from 'next/server.js'
 

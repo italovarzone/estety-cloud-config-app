@@ -2,43 +2,25 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../lib/mongo";
 
-function asObjectId(id) {
-  return /^[0-9a-f]{24}$/i.test(id) ? new ObjectId(id) : null;
-}
 
-export async function GET(_req, { params }) {
-  try {
-    const db = await getDb();
-    const { id } = params;
-
-    const oid = asObjectId(id);
-    const query = oid ? { _id: oid } : { $or: [{ tenantId: id }, { slug: id }] };
-
-    const doc = await db
-      .collection("tenants")
-      .findOne(query, {
-        projection: { tenantId: 1, name: 1, slug: 1, dbName: 1, mongoUri: 1, status: 1 },
-      });
-
-    if (!doc) return new NextResponse("not found", { status: 404 });
-    return NextResponse.json(doc, { headers: { "cache-control": "no-store" } });
-  } catch (e) {
-    console.error("[GET /api/tenants/:id] ERROR:", e);
-    return new NextResponse("server error", { status: 500 });
-  }
-}
-
+// GET /api/tenants
 export async function GET() {
   try {
     const db = await getDb();
-    const list = await db.collection("tenants").find({}).sort({ createdAt: -1 }).toArray();
+    const list = await db
+      .collection("tenants")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
     return NextResponse.json(list, { headers: { "cache-control": "no-store" } });
   } catch (e) {
-    console.error("[GET /api/tenants] DB ERROR:", e);
+    console.error("[GET /api/tenants] ERROR:", e);
     return NextResponse.json({ error: "db_error", detail: String(e) }, { status: 500 });
   }
 }
 
+// POST /api/tenants
 export async function POST(req) {
   try {
     const payload = await req.json();
@@ -66,7 +48,7 @@ export async function POST(req) {
     const created = await db.collection("tenants").findOne({ _id: insertedId });
     return NextResponse.json(created, { status: 201 });
   } catch (e) {
-    console.error("[POST /api/tenants] DB ERROR:", e);
+    console.error("[POST /api/tenants] ERROR:", e);
     return new NextResponse("Erro ao criar tenant", { status: 500 });
   }
 }
