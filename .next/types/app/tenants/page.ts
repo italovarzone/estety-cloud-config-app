@@ -1,4 +1,4 @@
-// File: C:\Desenv\estety-cloud-config-app\app\tenants\page.js
+// File: C:\Desenv\IPV\estety-cloud-config-app\app\tenants\page.js
 import * as entry from '../../../../app/tenants/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
