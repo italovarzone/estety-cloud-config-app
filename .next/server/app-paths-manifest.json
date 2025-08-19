@@ -1,6 +1,0 @@
-{
-  "/companies/page": "app/companies/page.js",
-  "/api/tenants/public/route": "app/api/tenants/public/route.js",
-  "/api/tenants/resolve/route": "app/api/tenants/resolve/route.js",
-  "/tenants/page": "app/tenants/page.js"
-}
