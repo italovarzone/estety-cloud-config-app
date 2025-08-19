@@ -1,6 +1,6 @@
 {
-  "/api/tenants/route": "app/api/tenants/route.js",
-  "/api/companies/route": "app/api/companies/route.js",
-  "/tenants/page": "app/tenants/page.js",
-  "/companies/page": "app/companies/page.js"
+  "/companies/page": "app/companies/page.js",
+  "/api/tenants/public/route": "app/api/tenants/public/route.js",
+  "/api/tenants/resolve/route": "app/api/tenants/resolve/route.js",
+  "/tenants/page": "app/tenants/page.js"
 }
