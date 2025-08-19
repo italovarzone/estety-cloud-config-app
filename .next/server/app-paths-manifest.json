@@ -1,5 +1,6 @@
 {
   "/api/tenants/route": "app/api/tenants/route.js",
-  "/api/tenants/[id]/test-db/route": "app/api/tenants/[id]/test-db/route.js",
-  "/tenants/page": "app/tenants/page.js"
+  "/api/companies/route": "app/api/companies/route.js",
+  "/tenants/page": "app/tenants/page.js",
+  "/companies/page": "app/companies/page.js"
 }
