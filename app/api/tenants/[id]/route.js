@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
-import { getDb } from "../../../lib/mongo";
+import { getDb } from "../../../../lib/mongo";
 import { randomUUID } from "crypto";
 
 function slugify(s) {
