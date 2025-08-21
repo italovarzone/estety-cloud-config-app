@@ -27,7 +27,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-, "app/api/tenants/[id]/test-db/users/[userId]/route.js", "app/tenants/page.js"  ],
+, "app/api/tenants/[id]/test-db/users/[userId]/route.ts", "app/tenants/page.js"  ],
   "exclude": [
     "node_modules"
   ]

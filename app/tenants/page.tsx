@@ -4,8 +4,28 @@ import { useEffect, useState } from "react";
 // pega o _id mesmo que venha como {$oid:"..."}
 const oid = (x: any) => (x && typeof x === "object" && "$oid" in x ? x.$oid : x);
 
+// helper pra exibir a URI parcialmente
+function previewUri(uri?: string | null) {
+  if (!uri) return "-";
+  const s = String(uri);
+  if (s.length <= 36) return s;
+  return s;
+}
+
+type Tenant = {
+  _id: string | { $oid: string };
+  tenantId: string;
+  name: string;
+  slug?: string | null;
+  dbName: string;
+  mongoUri?: string | null;
+  status: "active" | "inactive";
+};
+
+type Msg = { type: "ok" | "error"; text: string } | null;
+
 export default function TenantsPage() {
-  // form (mantive o tenantId desabilitado, pois no backend ele é gerado)
+  // ---------- criação novo tenant ----------
   const [form, setForm] = useState({
     tenantId: "",
     name: "",
@@ -15,21 +35,23 @@ export default function TenantsPage() {
     status: "active",
   });
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<null | { type: "ok" | "error"; text: string }>(null);
+  const [saveMsg, setSaveMsg] = useState<Msg>(null);
 
-  // lista tenants
-  const [items, setItems] = useState<any[]>([]);
+  // ---------- listagem ----------
+  const [items, setItems] = useState<Tenant[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  // modal detalhes (antes era “verificação”)
+  // ---------- detalhes (test-db) ----------
   const [modalOpen, setModalOpen] = useState(false);
   const [verifyData, setVerifyData] = useState<any | null>(null);
   const [currentCfgId, setCurrentCfgId] = useState<string | null>(null);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [isCreateUser, setIsCreateUser] = useState(false);
 
-  // modal editar usuário
+  // ---------- editar USUÁRIO (em test-db) ----------
   const [editOpen, setEditOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-  const [editMsg, setEditMsg] = useState<null | { type: "ok" | "error"; text: string }>(null);
+  const [editMsg, setEditMsg] = useState<Msg>(null);
   const [editForm, setEditForm] = useState<{
     _id: string;
     username: string;
@@ -48,6 +70,28 @@ export default function TenantsPage() {
     tenantId: "",
   });
 
+  // ---------- editar TENANT ----------
+  type TenantEditForm = {
+    _id: string;
+    name: string;
+    slug: string;
+    dbName: string;
+    mongoUri: string;
+    status: "active" | "inactive";
+  };
+  const [tenantEditOpen, setTenantEditOpen] = useState(false);
+  const [tenantEditSaving, setTenantEditSaving] = useState(false);
+  const [tenantEditMsg, setTenantEditMsg] = useState<Msg>(null);
+  const [tenantEditForm, setTenantEditForm] = useState<TenantEditForm>({
+    _id: "",
+    name: "",
+    slug: "",
+    dbName: "",
+    mongoUri: "",
+    status: "active",
+  });
+
+  // ----- carregar -----
   useEffect(() => { load(); }, []);
   async function load() {
     const res = await fetch("/api/tenants", { cache: "no-store" });
@@ -55,6 +99,7 @@ export default function TenantsPage() {
     setItems(Array.isArray(data) ? data : []);
   }
 
+  // ----- criar -----
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setSaveMsg(null);
@@ -90,13 +135,13 @@ export default function TenantsPage() {
     }
   }
 
-  // ----- DETALHES (usa GET /test-db) -----
+  // ----- normalizar resposta do test-db -----
   function normalizeVerifyResponse(status: number, data: any) {
     const users = Array.isArray(data?.usersSample) ? data.usersSample : [];
     return {
       ok: !!data?.ok || (status >= 200 && status < 300),
       status,
-      tenant: data?.tenant,
+      tenant: data?.tenant, // se o endpoint já devolver o tenant completo
       dbName: data?.dbName,
       uriKind: data?.uriKind,
       pingMS: data?.pingMs ?? data?.pingMS ?? "-",
@@ -105,11 +150,17 @@ export default function TenantsPage() {
     };
   }
 
+  // ----- abrir detalhes -----
   async function openDetails(idRaw: any) {
-    const id = oid(idRaw); // _id do doc do tenant na base de configuração
+    const id = oid(idRaw);
     setLoadingId(id);
     setVerifyData(null);
     setCurrentCfgId(id);
+
+    // guarda o tenant da lista pra usar como fallback
+    const tenantFromList = items.find((x) => oid(x._id) === id) || null;
+    setCurrentTenant(tenantFromList as any);
+
     try {
       const res = await fetch(`/api/tenants/${id}/test-db?sampleUsers=1&limit=50`, { cache: "no-store" });
       const raw = await res.json();
@@ -128,13 +179,69 @@ export default function TenantsPage() {
     if (verifyData?._raw) navigator.clipboard.writeText(JSON.stringify(verifyData._raw, null, 2));
   }
 
-  // ----- EDITAR USUÁRIO -----
+  // ----- abrir modal de edição do tenant -----
+  function openEditTenant(t: Tenant) {
+    const id = String(oid(t._id));
+    setTenantEditMsg(null);
+    setTenantEditForm({
+      _id: id,
+      name: t.name || "",
+      slug: t.slug || "",
+      dbName: t.dbName || "",
+      mongoUri: t.mongoUri || "",
+      status: (t.status as "active" | "inactive") || "active",
+    });
+    setTenantEditOpen(true);
+  }
+
+  // ----- salvar tenant -----
+  async function handleSaveTenant() {
+    setTenantEditMsg(null);
+    if (!tenantEditForm._id || !tenantEditForm.name || !tenantEditForm.dbName) {
+      setTenantEditMsg({ type: "error", text: "Preencha name e dbName." });
+      return;
+    }
+    setTenantEditSaving(true);
+    try {
+      const res = await fetch(`/api/tenants/${tenantEditForm._id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: tenantEditForm.name,
+          slug: tenantEditForm.slug,         // "" => remove (server transforma em null)
+          dbName: tenantEditForm.dbName,
+          mongoUri: tenantEditForm.mongoUri, // "" => vira null no server
+          status: tenantEditForm.status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTenantEditMsg({ type: "error", text: data?.message || data?.error || `Falha ao salvar (${res.status})` });
+        return;
+      }
+
+      // atualiza a tabela
+      setItems((curr) => curr.map((x) => (String(oid(x._id)) === tenantEditForm._id ? (data as Tenant) : x)));
+
+      // mantém modal de detalhes consistente
+      setCurrentTenant(data);
+
+      setTenantEditMsg({ type: "ok", text: "Tenant atualizado com sucesso." });
+      setTimeout(() => setTenantEditOpen(false), 700);
+    } catch (e: any) {
+      setTenantEditMsg({ type: "error", text: String(e) });
+    } finally {
+      setTenantEditSaving(false);
+    }
+  }
+
+  // ----- editar USUÁRIO (test-db) -----
   function openEditUser(u: any) {
     setEditMsg(null);
     setEditForm({
       _id: String(u._id),
       username: u.username || "",
-      password: "", // não exibimos senha atual; usuário define nova se quiser
+      password: "",
       city: u?.props?.city || "",
       pix_key: u?.props?.pix_key || "",
       pix_name: u?.props?.pix_name || "",
@@ -143,50 +250,88 @@ export default function TenantsPage() {
     setEditOpen(true);
   }
 
-  async function handleSaveUser() {
-    if (!currentCfgId) return;
-    setEditLoading(true);
-    setEditMsg(null);
-    try {
-      const res = await fetch(`/api/tenants/${currentCfgId}/test-db/users/${encodeURIComponent(editForm._id)}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          // sempre sobrescrevemos tenantId com o que vier do form:
-          tenantId: editForm.tenantId || null,
-          username: editForm.username || null,
-          // senha só envia se usuário preencheu algo:
-          ...(editForm.password ? { password: editForm.password } : {}),
-          city: editForm.city || null,
-          pix_key: editForm.pix_key || null,
-          pix_name: editForm.pix_name || null,
-        }),
-      });
+async function handleSaveUser() {
+  if (!currentCfgId) return;
 
-      const data = await res.json();
-      if (!res.ok || !data?.ok) {
-        setEditMsg({ type: "error", text: data?.error || `Falha ao salvar (${res.status})` });
-      } else {
-        setEditMsg({ type: "ok", text: "Usuário atualizado com sucesso." });
-        // atualiza na lista da modal:
-        if (verifyData?.users?.length) {
-          setVerifyData((curr: any) => {
-            if (!curr) return curr;
-            const nextUsers = [...(curr.users || [])];
-            const idx = nextUsers.findIndex((x: any) => String(x._id) === editForm._id);
-            if (idx >= 0) nextUsers[idx] = data.user; // sanitizado (sem password)
-            return { ...curr, users: nextUsers };
-          });
-        }
-        // fecha modal depois de um pequeno delay visual
-        setTimeout(() => setEditOpen(false), 700);
+  setEditLoading(true);
+  setEditMsg(null);
+
+  try {
+    const isCreate = isCreateUser === true;
+    const url = isCreate
+      ? `/api/tenants/${currentCfgId}/test-db/users`
+      : `/api/tenants/${currentCfgId}/test-db/users/${encodeURIComponent(editForm._id)}`;
+
+    const method = isCreate ? "POST" : "PATCH";
+
+    const body: any = {
+      tenantId: editForm.tenantId || null,
+      username: editForm.username || null,
+      city: editForm.city || null,
+      pix_key: editForm.pix_key || null,
+      pix_name: editForm.pix_name || null,
+    };
+
+    // criar => exige username+password; editar => só manda password se mudou
+    if (isCreate) {
+      if (!editForm.username || !editForm.password) {
+        setEditMsg({ type: "error", text: "Preencha username e password." });
+        setEditLoading(false);
+        return;
       }
-    } catch (e: any) {
-      setEditMsg({ type: "error", text: String(e) });
-    } finally {
-      setEditLoading(false);
+      body.password = editForm.password;
+    } else if (editForm.password) {
+      body.password = editForm.password;
     }
+
+    const res = await fetch(url, {
+      method,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    // parse seguro: se vier HTML/404 não quebra com Unexpected token '<'
+    let data: any = null;
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const txt = await res.text();
+      throw new Error(txt.slice(0, 300));
+    }
+
+    if (!res.ok || data?.ok === false) {
+      setEditMsg({ type: "error", text: data?.error || `Falha ao salvar (${res.status})` });
+      return;
+    }
+
+    setEditMsg({ type: "ok", text: isCreate ? "Usuário criado com sucesso." : "Usuário atualizado com sucesso." });
+
+    // atualiza lista na modal
+    setVerifyData((curr: any) => {
+      if (!curr) return curr;
+      const users = Array.isArray(curr.users) ? [...curr.users] : [];
+      if (isCreate) {
+        // regra: apenas 1 usuário por tenant — substitui lista inteira
+        return { ...curr, users: [data.user] };
+      } else {
+        const idx = users.findIndex((x: any) => String(x._id) === editForm._id);
+        if (idx >= 0) users[idx] = data.user;
+        return { ...curr, users };
+      }
+    });
+
+    // fecha modal
+    setTimeout(() => {
+      setEditOpen(false);
+      setIsCreateUser(false);
+    }, 700);
+  } catch (e: any) {
+    setEditMsg({ type: "error", text: String(e.message || e) });
+  } finally {
+    setEditLoading(false);
   }
+}
 
   return (
     <div className="container py-6 space-y-6">
@@ -252,7 +397,7 @@ export default function TenantsPage() {
           </tr></thead>
           <tbody>
           {items.map((t) => {
-            const id = oid(t._id);
+            const id = String(oid(t._id));
             return (
               <tr key={id} className="border-t">
                 <td className="px-4 py-3">{t.tenantId}</td>
@@ -264,6 +409,12 @@ export default function TenantsPage() {
                           className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50"
                           disabled={loadingId === id}>
                     {loadingId === id ? "Abrindo..." : "Detalhes"}
+                  </button>
+                  <button
+                    onClick={() => openEditTenant(t)}
+                    className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 ml-2"
+                  >
+                    Editar
                   </button>
                 </td>
               </tr>
@@ -283,11 +434,35 @@ export default function TenantsPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Detalhes do Tenant</h2>
               <div className="flex items-center gap-2">
-                <button onClick={copyRawJSON} className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50">Copiar JSON</button>
+                <button onClick={() => currentTenant && openEditTenant(currentTenant)} className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50">
+                  Editar
+                </button>
+                {(verifyData?.users?.length ?? 0) === 0 && (
+                <button
+                  onClick={() => {
+                    setIsCreateUser(true);
+                    setEditMsg(null);
+                    setEditForm({
+                      _id: "",
+                      username: "",
+                      password: "",
+                      city: "",
+                      pix_key: "",
+                      pix_name: "",
+                      tenantId: verifyData?.tenant?.tenantId || currentTenant?.tenantId || "",
+                    });
+                    setEditOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
+                >
+                  Adicionar usuário
+                </button>
+              )}
                 <button onClick={() => setModalOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">✕</button>
               </div>
             </div>
 
+            {/* Bloco do status do teste */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm rounded-xl border p-3 bg-zinc-50">
               <div>
                 <div><b>Status:</b> {verifyData.ok ? <span className="text-emerald-700">OK</span> : <span className="text-red-600">Falha</span>} <span className="text-zinc-600">({verifyData.status})</span></div>
@@ -298,6 +473,19 @@ export default function TenantsPage() {
                 <div><b>DB:</b> {verifyData.dbName || "-"}</div>
                 <div className="mt-1"><b>URI:</b> {verifyData.uriKind || "-"}</div>
                 <div className="mt-1"><b>Ping:</b> {verifyData.pingMS ?? "-"}</div>
+              </div>
+            </div>
+
+            {/* Bloco com as infos de conexão do tenant (name, slug, dbName, mongoUri, status) */}
+            <div className="grid grid-cols-1 gap-2 text-sm rounded-xl border p-3 bg-zinc-50 mt-3">
+              <div>
+                <div><b>Nome:</b> {verifyData?.tenant?.name ?? currentTenant?.name ?? "-"}</div>
+                <div className="mt-1"><b>Slug:</b> {verifyData?.tenant?.slug ?? currentTenant?.slug ?? "-"}</div>
+                <div className="mt-1"><b>Status do tenant:</b> {verifyData?.tenant?.status ?? currentTenant?.status ?? "-"}</div>
+              </div>
+              <div>
+                <div><b>dbName:</b> {verifyData?.tenant?.dbName ?? currentTenant?.dbName ?? "-"}</div>
+                <div className="mt-1"><b>mongoUri:</b> {previewUri(verifyData?.tenant?.mongoUri ?? currentTenant?.mongoUri)}</div>
               </div>
             </div>
 
@@ -395,10 +583,66 @@ export default function TenantsPage() {
             <div className="mt-4 flex items-center justify-between">
               {editMsg && <span className={editMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>{editMsg.text}</span>}
               <div className="flex gap-2">
-                <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setEditOpen(false)}>Cancelar</button>
+                <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => { setEditOpen(false); setIsCreateUser(false); }}>Cancelar</button>
                 <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
                         disabled={editLoading} onClick={handleSaveUser}>
                   {editLoading ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL EDITAR TENANT --- */}
+      {tenantEditOpen && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
+          <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Editar tenant</h3>
+              <button onClick={() => { setEditOpen(false); setIsCreateUser(false); }} className="px-2 py-1 rounded hover:bg-zinc-100">✕</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm mb-1">name *</label>
+                <input className="input w-full" value={tenantEditForm.name}
+                       onChange={(e) => setTenantEditForm({ ...tenantEditForm, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">slug</label>
+                <input className="input w-full" value={tenantEditForm.slug}
+                       onChange={(e) => setTenantEditForm({ ...tenantEditForm, slug: e.target.value })} />
+                <div className="text-xs text-zinc-500 mt-1">Deixe em branco para remover.</div>
+              </div>
+              <div>
+                <label className="block text-sm mb-1">dbName *</label>
+                <input className="input w-full" value={tenantEditForm.dbName}
+                       onChange={(e) => setTenantEditForm({ ...tenantEditForm, dbName: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">mongoUri</label>
+                <input className="input w-full" value={tenantEditForm.mongoUri}
+                       onChange={(e) => setTenantEditForm({ ...tenantEditForm, mongoUri: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">status</label>
+                <select className="input w-full" value={tenantEditForm.status}
+                        onChange={(e) => setTenantEditForm({ ...tenantEditForm, status: e.target.value as any })}>
+                  <option value="active">active</option>
+                  <option value="inactive">inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              {tenantEditMsg && <span className={tenantEditMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>{tenantEditMsg.text}</span>}
+              <div className="flex gap-2">
+                <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setTenantEditOpen(false)}>Cancelar</button>
+                <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+                        disabled={tenantEditSaving}
+                        onClick={handleSaveTenant}>
+                  {tenantEditSaving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

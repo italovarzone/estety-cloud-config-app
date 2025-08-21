@@ -19,18 +19,32 @@ function buildEffectiveUri(baseUri, dbName) {
   if (!/[?&]appName=/.test(uri))     uri += (uri.includes("?") ? "&" : "?") + "appName=EstetyConfig-Tester";
   return uri;
 }
-function pickDbNameFromUri(uri, fallback) {
-  const m = /mongodb(?:\+srv)?:\/\/[^/]+\/([^/?]+)/.exec(uri);
-  return (m && decodeURIComponent(m[1])) || fallback;
+
+function pickDbNameFromUri(uri: string, fallback?: string | null) {
+  try {
+    const u = new URL(uri);
+    const name = u.pathname.replace(/^\//, "");
+    if (name) return decodeURIComponent(name);
+  } catch {
+    const m = uri.match(/^mongodb(?:\+srv)?:\/\/[^/]+\/([^?]+)/i);
+    if (m?.[1]) return decodeURIComponent(m[1]);
+  }
+  return fallback || "";
 }
 
+function sanitizeDbName(name: string, fallback: string) {
+  if (!name) return fallback;
+  const clean = name.replace(/^\//, "").trim();
+  if (/[.\s]/.test(clean)) return fallback;
+  return clean || fallback;
+}
 /**
  * GET /api/tenants/:id/test-db?sampleUsers=1&limit=20
  */
 export async function GET(req, { params }) {
   const { id } = params;
 
-  const url = req.nextUrl;
+  const url = new URL(req.url);
   const includeUsers = url.searchParams.get("sampleUsers") === "1";
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "10", 10), 100);
 
@@ -62,7 +76,8 @@ export async function GET(req, { params }) {
 
     try {
       await client.connect();
-      const dbName = pickDbNameFromUri(effectiveUri, t.dbName);
+      const rawDbName = pickDbNameFromUri(effectiveUri, t.dbName);
+      const dbName = sanitizeDbName(rawDbName, t.dbName);
       const db = client.db(dbName);
 
       await db.command({ ping: 1 });
