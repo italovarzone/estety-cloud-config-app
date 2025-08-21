@@ -1,9 +1,10 @@
+// app/api/tenants/route.ts
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../lib/mongo";
 import { randomUUID } from "crypto";
 
-function slugify(s) {
+function slugify(s: string) {
   return String(s || "")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-")
@@ -28,16 +29,15 @@ export async function GET() {
 }
 
 // POST /api/tenants
-export async function POST(req) {
+export async function POST(req: Request) {
   try {
     const payload = await req.json();
 
-    // agora só exigimos name e dbName (tenantId é gerado aqui)
     for (const r of ["name", "dbName"]) {
       if (!payload[r]) return new NextResponse(`Campo obrigatório: ${r}`, { status: 400 });
     }
 
-    const tenantId = randomUUID(); // GUID v4
+    const tenantId = randomUUID();
     const name = String(payload.name).trim();
     const baseSlug = payload.slug ? String(payload.slug).trim() : slugify(name);
 
@@ -53,14 +53,12 @@ export async function POST(req) {
 
     const db = await getDb();
 
-    // índices de unicidade (idempotentes)
     await db.collection("tenants").createIndexes([
       { key: { tenantId: 1 }, name: "uniq_tenantId", unique: true },
       { key: { slug: 1 }, name: "uniq_slug", unique: true, partialFilterExpression: { slug: { $type: "string" } } },
     ]);
 
-    // valida unicidade (slug pode ser null)
-    const or = [{ tenantId: doc.tenantId }];
+    const or: Array<{ tenantId: string } | { slug: string }> = [{ tenantId: doc.tenantId }];
     if (doc.slug) or.push({ slug: doc.slug });
 
     const exists = await db.collection("tenants").findOne({ $or: or });
