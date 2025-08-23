@@ -15,7 +15,6 @@ export default function CompaniesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // tipo de pessoa controla a máscara do documento
   const [form, setForm] = useState({
     tipoPessoa: "FISICA" as "FISICA" | "JURIDICA",
     name: "",
