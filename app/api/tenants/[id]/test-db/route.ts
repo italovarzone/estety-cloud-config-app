@@ -87,7 +87,7 @@ export async function GET(req, { params }) {
       if (includeUsers) {
         usersSample = await db
           .collection("users")
-          .find({}, { projection: { password: 0 } })
+          .find({}, { projection: { password: 0 } }) // não precisa incluir directives
           .limit(limit)
           .toArray();
       }

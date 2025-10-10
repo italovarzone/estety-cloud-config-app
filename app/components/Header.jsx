@@ -68,6 +68,10 @@ function HamburgerMenu({ username }) {
             <a className="block px-3 py-2 rounded-lg hover:bg-zinc-50" href="/tenants" role="menuitem">
               Tenants
             </a>
+            <a className="block px-3 py-2 rounded-lg hover:bg-zinc-50" href="/directives" role="menuitem">
+              Diretivas / Permissões
+            </a>
+
 
             <div className="h-px bg-zinc-100 my-1" />
 

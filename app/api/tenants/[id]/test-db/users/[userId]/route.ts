@@ -5,9 +5,14 @@ import { MongoClient, ObjectId } from "mongodb";
 import { getDb } from "../../../../../../../lib/mongo";
 
 function pickDbNameFromUri(uri: string, fallback?: string | null) {
-  const m = /mongodb(?:\+srv)?:\/\/\/?([^/?]+)\/?/.exec(uri);
-  return m?.[1] || fallback || "";
+  const parts = uri.split("/");
+  const last = parts[parts.length - 1] || "";
+  const dbCandidate = last.split("?")[0].trim();
+  if (!dbCandidate) return fallback || "";
+  // remove caracteres inválidos
+  return dbCandidate.replace(/[.$\/\0]/g, "_");
 }
+
 
 function ensureDbInUri(baseUri: string, dbName: string) {
   let uri = String(baseUri || "").trim();
@@ -42,8 +47,8 @@ async function connectTenantDbByCfgId(cfgId: string) {
   const uri = ensureDbInUri(baseUri, dbName);
   const client = new MongoClient(uri);
   await client.connect();
-  const realDbName = pickDbNameFromUri(uri, dbName) || dbName;
-  const tenantDb = client.db(realDbName);
+const realDbName = (pickDbNameFromUri(uri, dbName) || dbName).replace(/[.$\/\0]/g, "_");
+const tenantDb = client.db(realDbName);
   return { client, tenantDb, cfg };
 }
 /* reaproveita os mesmos helpers do #1 (pode copiar/colar ou extrair p/ util) */
@@ -59,20 +64,24 @@ async function updateUser(req: Request, { params }: { params: { id: string; user
     city?: string;
     pix_key?: string;
     pix_name?: string;
+    directives?: string[];
   };
+
   let body: UserBody = {};
   try { body = await req.json(); } catch {}
 
-  const { tenantId, username, password, city, pix_key, pix_name } = body || {};
+  const { tenantId, username, password, city, pix_key, pix_name, directives } = body || {};
 
-  if (
-    typeof tenantId !== "string" &&
-    typeof username !== "string" &&
-    !(typeof password === "string" && password.length) &&
-    typeof city !== "string" &&
-    typeof pix_key !== "string" &&
-    typeof pix_name !== "string"
-  ) {
+  const hasUpdate =
+    typeof tenantId === "string" ||
+    typeof username === "string" ||
+    (typeof password === "string" && password.length) ||
+    typeof city === "string" ||
+    typeof pix_key === "string" ||
+    typeof pix_name === "string" ||
+    Array.isArray(directives);
+
+  if (!hasUpdate) {
     return NextResponse.json({ ok: false, error: "Nada para atualizar." }, { status: 400 });
   }
 
@@ -80,7 +89,6 @@ async function updateUser(req: Request, { params }: { params: { id: string; user
   try {
     const conn = await connectTenantDbByCfgId(id);
     client = conn.client;
-
     const db = conn.tenantDb;
     const col = db.collection("users");
 
@@ -96,6 +104,7 @@ async function updateUser(req: Request, { params }: { params: { id: string; user
     if (typeof city === "string")     $set["props.city"] = city;
     if (typeof pix_key === "string")  $set["props.pix_key"] = pix_key;
     if (typeof pix_name === "string") $set["props.pix_name"] = pix_name;
+    if (Array.isArray(directives))    $set.directives = directives.filter((d) => typeof d === "string" && d.trim());
 
     const result = await col.updateOne(filter, { $set });
     if (result.matchedCount === 0) {

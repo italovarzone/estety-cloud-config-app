@@ -115,6 +115,14 @@ export default function TenantsPage() {
     status: "active",
   });
 
+  const [userPermOpen, setUserPermOpen] = useState(false);
+  const [userPermSaving, setUserPermSaving] = useState(false);
+  const [userPermMsg, setUserPermMsg] = useState<Msg>(null);
+  const [availableUserDirectives, setAvailableUserDirectives] = useState<{_id:string;name:string;code:string;}[]>([]);
+  const [selectedUserDirectives, setSelectedUserDirectives] = useState<string[]>([]);
+
+  const [confirmAction, setConfirmAction] = useState(null); // "selectAll" | "removeAll" | null
+
   // ----- carregar lista -----
   useEffect(() => {
     load();
@@ -327,6 +335,78 @@ export default function TenantsPage() {
     });
     setEditOpen(true);
   }
+
+  async function openUserPermissions(u: any) {
+    // Garante que o usuário é o mesmo que está no verifyData (atualizado)
+    const freshUser =
+      verifyData?.users?.find((x: any) => String(x._id) === String(u._id)) || u;
+
+    // Lê diretivas do usuário ou inicializa vazio
+    const existingDirectives = Array.isArray(freshUser?.directives)
+      ? freshUser.directives
+      : [];
+
+    console.log("🔍 Diretivas carregadas do usuário:", existingDirectives);
+
+    setEditForm(freshUser);
+    setSelectedUserDirectives(existingDirectives);
+    setUserPermMsg(null);
+    setUserPermOpen(true);
+
+    try {
+      // carrega diretivas globais
+      const res = await fetch("/api/directives", { cache: "no-store" });
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setAvailableUserDirectives(list);
+
+      // revalida (às vezes o estado inicial é perdido quando as diretivas globais carregam)
+      setSelectedUserDirectives((curr) =>
+        curr.length ? curr : existingDirectives
+      );
+    } catch (err) {
+      console.error("❌ Falha ao carregar diretivas globais:", err);
+      setAvailableUserDirectives([]);
+    }
+  }
+
+  async function handleSaveUserPermissions() {
+  if (!currentCfgId || !editForm._id) return;
+  setUserPermSaving(true);
+  setUserPermMsg(null);
+
+  try {
+    const res = await fetch(
+      `/api/tenants/${currentCfgId}/test-db/users/${encodeURIComponent(editForm._id)}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ directives: selectedUserDirectives }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      setUserPermMsg({ type: "error", text: data?.error || "Erro ao salvar" });
+      return;
+    }
+    setUserPermMsg({ type: "ok", text: "Permissões do usuário atualizadas!" });
+
+    // Atualiza na tela de detalhes
+    setVerifyData((curr: any) => {
+      if (!curr) return curr;
+      const users = Array.isArray(curr.users) ? [...curr.users] : [];
+      const idx = users.findIndex((x: any) => String(x._id) === editForm._id);
+      if (idx >= 0) users[idx] = data.user;
+      return { ...curr, users };
+    });
+
+    setTimeout(() => setUserPermOpen(false), 800);
+  } catch (e: any) {
+    setUserPermMsg({ type: "error", text: String(e) });
+  } finally {
+    setUserPermSaving(false);
+  }
+}
 
   async function handleSaveUser() {
     if (!currentCfgId) return;
@@ -828,6 +908,15 @@ export default function TenantsPage() {
                   className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
                   onClick={() => {
                     setEditOpen(false);
+                    openUserPermissions(editForm);
+                  }}
+                >
+                  Permissões
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+                  onClick={() => {
+                    setEditOpen(false);
                     setIsCreateUser(false);
                   }}
                 >
@@ -927,6 +1016,136 @@ export default function TenantsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {userPermOpen && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[80]">
+          <div className="bg-white w-[min(600px,96vw)] rounded-2xl p-5 shadow-2xl relative">
+            {/* Cabeçalho */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Permissões do Usuário</h3>
+              <button
+                onClick={() => setUserPermOpen(false)}
+                className="px-2 py-1 rounded hover:bg-zinc-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Ações rápidas */}
+            <div className="flex items-center justify-end gap-2 mb-3">
+              <button
+                onClick={() => setConfirmAction("selectAll")}
+                className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100"
+              >
+                Selecionar Todos
+              </button>
+              <button
+                onClick={() => setConfirmAction("removeAll")}
+                className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100"
+              >
+                Remover Todos
+              </button>
+            </div>
+
+            {/* Lista de diretivas */}
+            <div className="max-h-[400px] overflow-auto border rounded-lg p-3 bg-zinc-50">
+              {availableUserDirectives.map((d) => (
+                <label key={d._id} className="flex items-center gap-2 mb-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedUserDirectives.includes(d.code)}
+                    onChange={(e) =>
+                      setSelectedUserDirectives((curr) =>
+                        e.target.checked
+                          ? [...curr, d.code]
+                          : curr.filter((c) => c !== d.code)
+                      )
+                    }
+                  />
+                  <span>
+                    <b>{d.name}</b>{" "}
+                    <span className="text-xs text-zinc-500">({d.code})</span>
+                  </span>
+                </label>
+              ))}
+              {!availableUserDirectives.length && (
+                <div className="text-sm text-zinc-500">Nenhuma diretiva disponível.</div>
+              )}
+            </div>
+
+            {/* Rodapé */}
+            <div className="mt-4 flex items-center justify-between">
+              {userPermMsg && (
+                <span
+                  className={
+                    userPermMsg.type === "ok"
+                      ? "text-emerald-700 text-sm"
+                      : "text-red-600 text-sm"
+                  }
+                >
+                  {userPermMsg.text}
+                </span>
+              )}
+              <div className="flex gap-2">
+                <button
+                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+                  onClick={() => setUserPermOpen(false)}
+                >
+                  Fechar
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+                  disabled={userPermSaving}
+                  onClick={handleSaveUserPermissions}
+                >
+                  {userPermSaving ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+
+            {/* 🔒 Modal de confirmação */}
+            {confirmAction && (
+              <div className="absolute inset-0 bg-black/40 grid place-items-center rounded-2xl z-10">
+                <div className="bg-white p-5 rounded-xl shadow-xl max-w-sm w-[90%] text-center">
+                  <h4 className="text-lg font-semibold mb-2">
+                    Tem certeza que deseja {confirmAction === "selectAll" ? "selecionar todas" : "remover todas"} as permissões?
+                  </h4>
+                  <p className="text-sm text-zinc-500 mb-4">
+                    Essa ação pode ser revertida antes de salvar.
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={() => setConfirmAction(null)}
+                      className="px-4 py-2 rounded-lg border hover:bg-zinc-100"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirmAction === "selectAll") {
+                          setSelectedUserDirectives(
+                            availableUserDirectives.map((d) => d.code)
+                          );
+                        } else if (confirmAction === "removeAll") {
+                          setSelectedUserDirectives([]);
+                        }
+                        setConfirmAction(null);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-white ${
+                        confirmAction === "selectAll"
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
