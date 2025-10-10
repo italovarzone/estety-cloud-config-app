@@ -18,14 +18,14 @@ export async function GET(req: Request) {
     }
 
     const db = await getDb();
-    // Seguro (para uso em login ou listagem de tenants)
-    const tenants = await db.collection("tenants")
+    const items = await db
+      .collection("tenants")
       .find({ status: { $ne: "deleted" } })
-      .project({ tenantId: 1, name: 1, slug: 1 })
+      .project({ tenantId: 1, name: 1, slug: 1, dbName: 1, mongoUri: 1 })
       .sort({ name: 1 })
       .toArray();
 
-    return NextResponse.json(tenants, { headers: corsHeaders });
+    return NextResponse.json(items, { headers: { ...corsHeaders, "cache-control": "no-store" } });
   } catch (e) {
     console.error("[GET /api/tenants/public] ERROR:", e);
     return new NextResponse("server error", { status: 500, headers: corsHeaders });

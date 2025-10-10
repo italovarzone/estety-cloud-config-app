@@ -18,10 +18,10 @@ export async function GET(req) {
       return new NextResponse("unauthorized", { status: 401 });
     }
 
-    const referer = req.headers.get("origin") || "";
-    if (!referer.includes("estetycloud") && process.env.NODE_ENV === "production") {
-      return new NextResponse("forbidden", { status: 403 });
-    }
+    // const referer = req.headers.get("origin") || "";
+    // if (!referer.includes("estetycloud") && process.env.NODE_ENV === "production") {
+    //   return new NextResponse("forbidden", { status: 403 });
+    // }
 
     const { searchParams } = new URL(req.url);
     const tenant = (searchParams.get("tenant") || "").trim();
