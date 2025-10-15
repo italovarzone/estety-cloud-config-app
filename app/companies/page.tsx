@@ -18,6 +18,7 @@ export default function CompaniesPage() {
   const [form, setForm] = useState({
     tipoPessoa: "FISICA" as "FISICA" | "JURIDICA",
     name: "",
+    slug: "",          // <-- novo campo
     cep: "",
     rua: "",
     titulo: "",
@@ -190,6 +191,7 @@ export default function CompaniesPage() {
         cnpjCpf: "",
         numeroContato: "",
         tenantRef: "",
+        slug: "",          // <-- novo campo
       });
       setModalOpen(false);
       await loadCompanies();
@@ -212,6 +214,7 @@ export default function CompaniesPage() {
       cnpjCpf: "",
       numeroContato: "",
       tenantRef: "",
+      slug: "",          // <-- novo campo
     });
     setModalOpen(true);
   }
@@ -230,6 +233,7 @@ export default function CompaniesPage() {
       cnpjCpf: c.cnpjCpf || "",
       numeroContato: c.numeroContato || "",
       tenantRef: c.tenantRef || "",
+      slug: c.slug || "",   // <-- novo campo
     });
     setModalOpen(true);
   }
@@ -270,6 +274,7 @@ export default function CompaniesPage() {
                 <th className="px-4 py-3 text-left">cnpj/cpf</th>
                 <th className="px-4 py-3 text-left">telefone</th>
                 <th className="px-4 py-3 text-left">tenant</th>
+                <th className="px-4 py-3 text-left">slug</th>
                 <th className="px-4 py-3 text-right">ações</th>
               </tr>
             </thead>
@@ -285,6 +290,7 @@ export default function CompaniesPage() {
                   <td className="px-4 py-3">
                     {c.tenantName} <span className="text-zinc-400">({c.tenantId})</span>
                   </td>
+                  <td className="px-4 py-3 text-zinc-500">{c.slug}</td>
                   <td className="px-4 py-3 text-right">
                     <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50" onClick={() => edit(c)}>
                       Editar
@@ -429,6 +435,14 @@ export default function CompaniesPage() {
                 onChange={onChange}
                 required
               />
+
+                <input
+                  className="input bg-zinc-100 text-zinc-500"
+                  placeholder="Slug"
+                  name="slug"
+                  value={form.slug}
+                  readOnly
+                />
 
               <div className="col-span-full flex items-center justify-end gap-2 mt-1">
                 <button
