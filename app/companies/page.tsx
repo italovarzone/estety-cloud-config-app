@@ -436,13 +436,14 @@ export default function CompaniesPage() {
                 required
               />
 
-                <input
-                  className="input bg-zinc-100 text-zinc-500"
-                  placeholder="Slug"
-                  name="slug"
-                  value={form.slug}
-                  readOnly
-                />
+              <input
+                className="input"
+                placeholder="Slug"
+                name="slug"
+                value={form.slug}
+                onChange={onChange}
+                required
+              />
 
               <div className="col-span-full flex items-center justify-end gap-2 mt-1">
                 <button

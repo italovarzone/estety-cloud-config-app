@@ -3,19 +3,19 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDb } from "../../../lib/mongo";
 
-// Função utilitária para gerar slug do nome
+// Função utilitária para gerar slug
 function makeSlug(name: string) {
   return name
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // remove acentos
-    .replace(/[^a-z0-9\s-]/g, "")   // remove caracteres especiais
-    .replace(/\s+/g, "-")           // troca espaços por hífen
-    .replace(/-+/g, "-");           // evita hífens duplos
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
-// GET list (mantém igual)
+// GET lista
 export async function GET() {
   try {
     const db = await getDb();
@@ -42,44 +42,44 @@ export async function GET() {
         },
       },
     ]).sort({ createdAt: -1 }).toArray();
+
     return NextResponse.json(list, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error("[GET /api/companies] DB ERROR:", e);
-    return NextResponse.json({ error: "db_error", detail: String(e) }, { status: 500 });
+    return new NextResponse("Erro interno", { status: 500 });
   }
 }
 
-// POST create (atualizado)
+// POST cria empresa
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
     const required = ["name", "cep", "rua", "bairro", "cidade", "uf", "cnpjCpf", "numeroContato", "tenantRef"];
-    for (const r of required) if (!payload[r]) return new NextResponse(`Campo obrigatório: ${r}`, { status: 400 });
+    for (const r of required)
+      if (!payload[r]) return new NextResponse(`Campo obrigatório: ${r}`, { status: 400 });
 
     const db = await getDb();
     const tenant = await db.collection("tenants").findOne({ _id: new ObjectId(payload.tenantRef) });
     if (!tenant) return new NextResponse("Tenant inválido", { status: 400 });
 
-    const slug = makeSlug(String(payload.name));
-
-    // Garante unicidade do slug (append número se já existir)
-    let uniqueSlug = slug;
+    const baseSlug = makeSlug(payload.name);
+    let uniqueSlug = baseSlug;
     let counter = 1;
     while (await db.collection("companies").findOne({ slug: uniqueSlug })) {
-      uniqueSlug = `${slug}-${counter++}`;
+      uniqueSlug = `${baseSlug}-${counter++}`;
     }
 
     const doc = {
-      name: String(payload.name).trim(),
+      name: payload.name.trim(),
       slug: uniqueSlug,
-      cep: String(payload.cep).trim(),
-      rua: String(payload.rua).trim(),
-      titulo: payload.titulo ? String(payload.titulo).trim() : "",
-      bairro: String(payload.bairro).trim(),
-      cidade: String(payload.cidade).trim(),
-      uf: String(payload.uf).trim().toUpperCase(),
-      cnpjCpf: String(payload.cnpjCpf).trim(),
-      numeroContato: String(payload.numeroContato).trim(),
+      cep: payload.cep.trim(),
+      rua: payload.rua.trim(),
+      titulo: payload.titulo ? payload.titulo.trim() : "",
+      bairro: payload.bairro.trim(),
+      cidade: payload.cidade.trim(),
+      uf: payload.uf.trim().toUpperCase(),
+      cnpjCpf: payload.cnpjCpf.trim(),
+      numeroContato: payload.numeroContato.trim(),
       tenantRef: tenant._id,
       tenantId: tenant.tenantId,
       tenantName: tenant.name,
