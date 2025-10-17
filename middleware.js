@@ -3,27 +3,24 @@ import { jwtVerify } from "jose";
 
 const key = new TextEncoder().encode(process.env.CONFIG_JWT_SECRET);
 
-// Rotas que exigem token
 const PROTECTED = ["/tenants", "/companies", "/api/tenants", "/api/companies"];
-// Rotas que NÃO devem exigir token
 const EXCEPTIONS = [
   "/api/tenants/resolve",
-  "/api/tenants/public",   // ✅ liberar esta
+  "/api/tenants/public",
   "/api/auth/login",
   "/api/auth/logout",
+  "/api/users-estetycloud", // ✅ liberar users-estetycloud
+  "/api/users-estetycloud/", // ✅ e qualquer subrota
   "/login",
 ];
-
 
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get("config_token")?.value;
 
-  // 1) HOME: decide destino antes de qualquer render
+  // 1) HOME redirect logic
   if (pathname === "/") {
-    if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+    if (!token) return NextResponse.redirect(new URL("/login", req.url));
     try {
       await jwtVerify(token, key);
       return NextResponse.redirect(new URL("/tenants", req.url));
@@ -32,14 +29,12 @@ export async function middleware(req) {
     }
   }
 
-  // 2) LOGIN: se já estiver logado, manda para tenants
+  // 2) LOGIN shortcut
   if (pathname === "/login" && token) {
     try {
       await jwtVerify(token, key);
       return NextResponse.redirect(new URL("/tenants", req.url));
-    } catch {
-      // token inválido → deixa ir pro login
-    }
+    } catch {}
   }
 
   // 3) Proteção das rotas privadas
@@ -47,7 +42,9 @@ export async function middleware(req) {
     PROTECTED.some((p) => pathname.startsWith(p)) &&
     !EXCEPTIONS.some((e) => pathname.startsWith(e));
 
-  if (!isProtected) return NextResponse.next();
+  if (!isProtected) {
+    return NextResponse.next();
+  }
 
   if (!token) {
     if (pathname.startsWith("/api/")) {
@@ -73,7 +70,6 @@ export async function middleware(req) {
   }
 }
 
-// ⚠️ Inclui a raiz "/" no matcher para já redirecionar antes de render
 export const config = {
   matcher: [
     "/",
@@ -82,5 +78,6 @@ export const config = {
     "/companies/:path*",
     "/api/tenants/:path*",
     "/api/companies/:path*",
+    "/api/users-estetycloud/:path*", // ✅ adiciona explicitamente no matcher
   ],
 };

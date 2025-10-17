@@ -346,8 +346,6 @@ export default function TenantsPage() {
       ? freshUser.directives
       : [];
 
-    console.log("🔍 Diretivas carregadas do usuário:", existingDirectives);
-
     setEditForm(freshUser);
     setSelectedUserDirectives(existingDirectives);
     setUserPermMsg(null);
