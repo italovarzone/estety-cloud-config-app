@@ -3,7 +3,7 @@ import { jwtVerify } from "jose";
 
 const key = new TextEncoder().encode(process.env.CONFIG_JWT_SECRET);
 
-const PROTECTED = ["/tenants", "/companies", "/api/tenants", "/api/companies"];
+const PROTECTED = ["/tenants", "/api/tenants"];
 const EXCEPTIONS = [
   "/api/tenants/resolve",
   "/api/tenants/public",
@@ -11,6 +11,8 @@ const EXCEPTIONS = [
   "/api/auth/logout",
   "/api/users-estetycloud", // ✅ liberar users-estetycloud
   "/api/users-estetycloud/", // ✅ e qualquer subrota
+  "/api/companies",
+  "/companies",
   "/login",
 ];
 
