@@ -111,6 +111,10 @@ export async function POST(req) {
       tenantIds: Array.isArray(payload.tenantIds) ? payload.tenantIds : [],
       directives: Array.isArray(payload.directives) ? payload.directives : [],
       type: payload.type === 1 ? 1 : 0,
+      // 🔹 Campos PIX
+      pix_key: payload.pix_key ? String(payload.pix_key).trim() : undefined,
+      pix_name: payload.pix_name ? String(payload.pix_name).trim() : undefined,
+      city: payload.city ? String(payload.city).trim() : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -17,6 +17,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (payload.directives) upd.directives = payload.directives;
     if (payload.tenantIds) upd.tenantIds = payload.tenantIds;
     if (payload.type != null) upd.type = payload.type === 1 ? 1 : 0;
+    // 🔹 Campos PIX (se vierem no payload, atualiza)
+    if (Object.prototype.hasOwnProperty.call(payload, 'pix_key')) {
+      upd.pix_key = payload.pix_key != null ? String(payload.pix_key).trim() : undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'pix_name')) {
+      upd.pix_name = payload.pix_name != null ? String(payload.pix_name).trim() : undefined;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'city')) {
+      upd.city = payload.city != null ? String(payload.city).trim() : undefined;
+    }
     upd.updatedAt = new Date().toISOString();
 
     if (upd.email) {

@@ -68,13 +68,17 @@ export default function UsersEstetyCloudPage() {
     try {
       const method = form._id ? "PATCH" : "POST";
       const url = form._id ? `/api/users-estetycloud/${form._id}` : "/api/users-estetycloud";
-      const body = {
+      const body: any = {
         email: form.email,
         password: form.password || undefined,
         tenantIds: form.tenantIds,
         directives: selectedUserDirectives,
         type: form.type,
       };
+      // 🔹 Campos PIX opcionais
+      if ((form as any).pix_key !== undefined) body.pix_key = (form as any).pix_key;
+      if ((form as any).pix_name !== undefined) body.pix_name = (form as any).pix_name;
+      if ((form as any).city !== undefined) body.city = (form as any).city;
       const res = await fetch(url, { method, headers: { "content-type": "application/json", "x-config-api-key": "super-secreto" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || data?.error || `Erro ${res.status}`);
@@ -231,6 +235,22 @@ export default function UsersEstetyCloudPage() {
                   <button type="button" onClick={openUserPermissions} className="w-full px-4 py-2 rounded-lg border hover:bg-zinc-50">
                     Gerenciar Diretivas
                   </button>
+                </div>
+              </div>
+
+              {/* Campos PIX */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm mb-1">PIX Key</label>
+                  <input className="input w-full" value={(form as any).pix_key || ""} onChange={(e) => setForm({ ...(form as any), pix_key: e.target.value } as any)} />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">PIX Name</label>
+                  <input className="input w-full" value={(form as any).pix_name || ""} onChange={(e) => setForm({ ...(form as any), pix_name: e.target.value } as any)} />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Cidade</label>
+                  <input className="input w-full" value={(form as any).city || ""} onChange={(e) => setForm({ ...(form as any), city: e.target.value } as any)} />
                 </div>
               </div>
 
