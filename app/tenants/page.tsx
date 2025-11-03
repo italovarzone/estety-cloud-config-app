@@ -71,6 +71,70 @@ export default function TenantsPage() {
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   // criação de usuário pelo tenant removida (fluxo agora via users_estetycloud)
 
+  // ---------- logs de notificações ----------
+  type LogEntry = {
+    _id?: any;
+    tenantId?: string;
+    channel?: "webpush" | "email" | string;
+    job?: string;
+    recipient?: string | string[] | null;
+    content?: any;
+    success?: boolean;
+    error?: any;
+    createdAt?: string | Date;
+  };
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsPageSize, setLogsPageSize] = useState(10);
+  const [logFilterJob, setLogFilterJob] = useState("");
+  const [logFilterChannel, setLogFilterChannel] = useState("");
+  const [logFilterSuccess, setLogFilterSuccess] = useState(""); // "", "true", "false"
+  const [logFilterFrom, setLogFilterFrom] = useState(""); // yyyy-mm-dd
+  const [logFilterTo, setLogFilterTo] = useState("");   // yyyy-mm-dd
+
+  function dateToRangeStart(d: string) {
+    // d: yyyy-mm-dd
+    if (!d) return "";
+    return new Date(`${d}T00:00:00.000Z`).toISOString();
+  }
+  function dateToRangeEnd(d: string) {
+    if (!d) return "";
+    return new Date(`${d}T23:59:59.999Z`).toISOString();
+  }
+
+  async function loadLogs(page = 1) {
+    if (!currentCfgId) return;
+    setLogsLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set("page", String(page));
+      qs.set("limit", String(logsPageSize || 10));
+      if (logFilterJob.trim()) qs.set("job", logFilterJob.trim());
+      if (logFilterChannel) qs.set("channel", logFilterChannel);
+      if (logFilterSuccess) qs.set("success", logFilterSuccess);
+      if (logFilterFrom) qs.set("from", dateToRangeStart(logFilterFrom));
+      if (logFilterTo) qs.set("to", dateToRangeEnd(logFilterTo));
+      const res = await fetch(`/api/tenants/${currentCfgId}/logs?` + qs.toString(), { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok && data?.ok) {
+        setLogs(data.items || []);
+        setLogsTotal(data.total || 0);
+        setLogsPage(data.page || page);
+        setLogsPageSize(data.pageSize || 10);
+      } else {
+        setLogs([]);
+        setLogsTotal(0);
+      }
+    } catch (e) {
+      setLogs([]);
+      setLogsTotal(0);
+    } finally {
+      setLogsLoading(false);
+    }
+  }
+
   // ---------- editar USUÁRIO ----------
   const [editOpen, setEditOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -243,6 +307,16 @@ export default function TenantsPage() {
       const norm = normalizeVerifyResponse(res.status, raw);
       setVerifyData(norm);
       setModalOpen(true);
+      // carrega logs (primeira página)
+      setLogs([]);
+      setLogsTotal(0);
+      setLogsPage(1);
+      setLogFilterJob("");
+      setLogFilterChannel("");
+      setLogFilterSuccess("");
+      setLogFilterFrom("");
+      setLogFilterTo("");
+      await loadLogs(1);
     } catch (e: any) {
       setVerifyData({ ok: false, status: "ERR", _raw: { error: String(e) }, users: [] });
       setModalOpen(true);
@@ -706,7 +780,117 @@ export default function TenantsPage() {
               </div>
             </div>
 
-            {/* Seção de usuários removida deste detalhe */}
+            {/* Logs de notificações */}
+            <div className="mt-3 border rounded-xl p-3 bg-white">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Logs de notificações</h3>
+                <span className="text-xs text-zinc-500">{logsTotal} registros</span>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                <div>
+                  <label className="block text-xs mb-1">Job</label>
+                  <input className="input w-full" placeholder="ex: agendamentos_30min" value={logFilterJob} onChange={(e)=>setLogFilterJob(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Canal</label>
+                  <select className="input w-full" value={logFilterChannel} onChange={(e)=>setLogFilterChannel(e.target.value)}>
+                    <option value="">(todos)</option>
+                    <option value="webpush">webpush</option>
+                    <option value="email">email</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Sucesso</label>
+                  <select className="input w-full" value={logFilterSuccess} onChange={(e)=>setLogFilterSuccess(e.target.value)}>
+                    <option value="">(todos)</option>
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs mb-1">De (data)</label>
+                    <input type="date" className="input w-full" value={logFilterFrom} onChange={(e)=>setLogFilterFrom(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1">Até (data)</label>
+                    <input type="date" className="input w-full" value={logFilterTo} onChange={(e)=>setLogFilterTo(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3">
+                <button className="btn" onClick={()=>{ setLogsPage(1); loadLogs(1); }} disabled={logsLoading}>
+                  {logsLoading ? "Filtrando…" : "Aplicar filtros"}
+                </button>
+                <div className="text-xs text-zinc-500">Página {logsPage} / {Math.max(1, Math.ceil((logsTotal||0)/(logsPageSize||10)))}</div>
+              </div>
+
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-zinc-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Data</th>
+                      <th className="px-3 py-2 text-left">Canal</th>
+                      <th className="px-3 py-2 text-left">Job</th>
+                      <th className="px-3 py-2 text-left">Sucesso</th>
+                      <th className="px-3 py-2 text-left">Destinatário</th>
+                      <th className="px-3 py-2 text-left">Conteúdo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logs.map((l, idx) => {
+                      const dt = l.createdAt ? new Date(l.createdAt) : null;
+                      const when = dt ? dt.toLocaleString('pt-BR') : '-';
+                      const recip = Array.isArray(l.recipient) ? l.recipient.join(', ') : (l.recipient || '-');
+                      let contentPreview = '-';
+                      if (l.channel === 'webpush') {
+                        const title = l?.content?.title || '';
+                        const body = l?.content?.body || '';
+                        contentPreview = title || body ? `${title}${title && body ? ' — ' : ''}${body}` : '-';
+                      } else if (l.channel === 'email') {
+                        const subj = l?.content?.subject || '';
+                        contentPreview = subj || '-';
+                      }
+                      return (
+                        <tr key={String((l as any)._id?._id || (l as any)._id || idx)} className="border-t">
+                          <td className="px-3 py-2 align-top whitespace-nowrap">{when}</td>
+                          <td className="px-3 py-2 align-top">{l.channel || '-'}</td>
+                          <td className="px-3 py-2 align-top">{l.job || '-'}</td>
+                          <td className="px-3 py-2 align-top">
+                            {l.success === true ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-emerald-700 bg-emerald-50 border border-emerald-200">true</span>
+                            ) : l.success === false ? (
+                              <span className="inline-block px-2 py-0.5 rounded text-red-700 bg-red-50 border border-red-200">false</span>
+                            ) : (
+                              <span className="text-zinc-500">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top max-w-[260px] truncate" title={String(recip)}>{String(recip)}</td>
+                          <td className="px-3 py-2 align-top max-w-[360px] truncate" title={contentPreview}>{contentPreview}</td>
+                        </tr>
+                      );
+                    })}
+                    {!logs.length && (
+                      <tr>
+                        <td className="px-3 py-6 text-zinc-500" colSpan={6}>{logsLoading ? 'Carregando…' : 'Sem registros para os filtros informados.'}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* paginação */}
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-xs text-zinc-500">Mostrando {logs.length} de {logsTotal}</div>
+                <div className="flex items-center gap-2">
+                  <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={logsPage <= 1 || logsLoading} onClick={()=>{ const p = Math.max(1, logsPage-1); setLogsPage(p); loadLogs(p); }}>Anterior</button>
+                  <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={logsPage >= Math.ceil((logsTotal||0)/(logsPageSize||10)) || logsLoading} onClick={()=>{ const p = logsPage+1; setLogsPage(p); loadLogs(p); }}>Próxima</button>
+                </div>
+              </div>
+            </div>
 
             <div className="mt-4 flex items-center justify-end">
               <button
