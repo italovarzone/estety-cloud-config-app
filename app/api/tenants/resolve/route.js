@@ -38,7 +38,7 @@ export async function GET(req) {
     // 🔹 Busca a company que tem este tenantId vinculado
     const company = await db.collection("companies").findOne(
       { tenantId: doc.tenantId },
-      { projection: { name: 1, titulo: 1, cnpjCpf: 1, cidade: 1, uf: 1, slug: 1, tenantId: 1 } }
+      { projection: { name: 1, titulo: 1, cnpjCpf: 1, cidade: 1, uf: 1, slug: 1, tenantId: 1, numeroContato: 1 } }
     );
 
     // 🔹 Retorna ambos
