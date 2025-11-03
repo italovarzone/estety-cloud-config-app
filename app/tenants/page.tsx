@@ -25,15 +25,14 @@ type Tenant = {
 
 type Msg = { type: "ok" | "error"; text: string } | null;
 
-type DotState = "ok" | "warn" | "err";
+type DotState = "ok" | "err";
 type DotInfo = { state: DotState; title: string };
 
 function StatusDot({ info }: { info?: DotInfo }) {
   if (!info) {
     return <span className="inline-block align-middle spinner-xs" aria-label="Carregando status" />;
   }
-  const color =
-    info.state === "ok" ? "bg-emerald-500" : info.state === "warn" ? "bg-amber-500" : "bg-red-500";
+  const color = info.state === "ok" ? "bg-emerald-500" : "bg-red-500";
   return (
     <span
       className={`inline-block align-middle w-2.5 h-2.5 rounded-full ${color}`}
@@ -70,7 +69,7 @@ export default function TenantsPage() {
   const [verifyData, setVerifyData] = useState<any | null>(null);
   const [currentCfgId, setCurrentCfgId] = useState<string | null>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
-  const [isCreateUser, setIsCreateUser] = useState(false);
+  // criação de usuário pelo tenant removida (fluxo agora via users_estetycloud)
 
   // ---------- editar USUÁRIO ----------
   const [editOpen, setEditOpen] = useState(false);
@@ -157,13 +156,9 @@ export default function TenantsPage() {
             });
             const data = await res.json();
             if (res.ok && data?.ok) {
-              const hasUsers = Array.isArray(data.usersSample) && data.usersSample.length > 0;
               const ping = data?.pingMs ?? data?.pingMS;
-              const state: DotState = hasUsers ? "ok" : "warn";
-              const title = hasUsers
-                ? `OK – Banco funcionando${ping ? ` (ping ${ping}ms)` : ""}`
-                : `OK – Sem usuários cadastrados${ping ? ` (ping ${ping}ms)` : ""}`;
-              return [id, { state, title }] as [string, DotInfo];
+              const title = `OK – Banco funcionando${ping ? ` (ping ${ping}ms)` : ""}`;
+              return [id, { state: "ok", title }] as [string, DotInfo];
             }
             const errMsg = data?.error || `Erro ${res.status}`;
             return [id, { state: "err", title: `ERRO – Banco fora do ar (${errMsg})` }];
@@ -323,7 +318,6 @@ export default function TenantsPage() {
   // ----- editar/criar USUÁRIO -----
   function openEditUser(u: any) {
     setEditMsg(null);
-    setIsCreateUser(false);
     setEditForm({
       _id: String(u._id),
       username: u.username || "",
@@ -407,18 +401,13 @@ export default function TenantsPage() {
 }
 
   async function handleSaveUser() {
-    if (!currentCfgId) return;
+    if (!currentCfgId || !editForm._id) return;
 
     setEditLoading(true);
     setEditMsg(null);
 
     try {
-      const isCreate = isCreateUser === true;
-      const url = isCreate
-        ? `/api/tenants/${currentCfgId}/test-db/users`
-        : `/api/tenants/${currentCfgId}/test-db/users/${encodeURIComponent(editForm._id)}`;
-
-      const method = isCreate ? "POST" : "PATCH";
+      const url = `/api/tenants/${currentCfgId}/test-db/users/${encodeURIComponent(editForm._id)}`;
 
       const body: any = {
         tenantId: editForm.tenantId || null,
@@ -428,19 +417,12 @@ export default function TenantsPage() {
         pix_name: editForm.pix_name || null,
       };
 
-      if (isCreate) {
-        if (!editForm.username || !editForm.password) {
-          setEditMsg({ type: "error", text: "Preencha username e password." });
-          setEditLoading(false);
-          return;
-        }
-        body.password = editForm.password;
-      } else if (editForm.password) {
+      if (editForm.password) {
         body.password = editForm.password;
       }
 
       const res = await fetch(url, {
-        method,
+        method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -459,26 +441,18 @@ export default function TenantsPage() {
         return;
       }
 
-      setEditMsg({
-        type: "ok",
-        text: isCreate ? "Usuário criado com sucesso." : "Usuário atualizado com sucesso.",
-      });
+      setEditMsg({ type: "ok", text: "Usuário atualizado com sucesso." });
 
       setVerifyData((curr: any) => {
         if (!curr) return curr;
         const users = Array.isArray(curr.users) ? [...curr.users] : [];
-        if (isCreate) {
-          return { ...curr, users: [data.user] };
-        } else {
-          const idx = users.findIndex((x: any) => String(x._id) === editForm._id);
-          if (idx >= 0) users[idx] = data.user;
-          return { ...curr, users };
-        }
+        const idx = users.findIndex((x: any) => String(x._id) === editForm._id);
+        if (idx >= 0) users[idx] = data.user;
+        return { ...curr, users };
       });
 
       setTimeout(() => {
         setEditOpen(false);
-        setIsCreateUser(false);
       }, 700);
     } catch (e: any) {
       setEditMsg({ type: "error", text: String(e.message || e) });
@@ -662,27 +636,7 @@ export default function TenantsPage() {
                 >
                   Editar
                 </button>
-                {(verifyData?.users?.length ?? 0) === 0 && (
-                  <button
-                    onClick={() => {
-                      setIsCreateUser(true);
-                      setEditMsg(null);
-                      setEditForm({
-                        _id: "",
-                        username: "",
-                        password: "",
-                        city: "",
-                        pix_key: "",
-                        pix_name: "",
-                        tenantId: verifyData?.tenant?.tenantId || currentTenant?.tenantId || "",
-                      });
-                      setEditOpen(true);
-                    }}
-                    className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
-                  >
-                    Adicionar usuário
-                  </button>
-                )}
+                {/* Fluxo de criação de usuário removido deste contexto */}
                 <button onClick={copyRawJSON} className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50">
                   Copiar JSON
                 </button>
@@ -752,59 +706,7 @@ export default function TenantsPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm font-medium">
-                Usuários retornados ({verifyData.users?.length || 0})
-              </div>
-            </div>
-
-            <div className="mt-2 rounded-xl border overflow-hidden">
-              <div className="max-h-[55vh] overflow-auto text-sm">
-                <table className="min-w-full">
-                  <thead className="bg-zinc-50 sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2 text-left w-[240px]">_id</th>
-                      <th className="px-3 py-2 text-left w-[200px]">username</th>
-                      <th className="px-3 py-2 text-left">props (preview)</th>
-                      <th className="px-3 py-2 text-right w-[120px]">ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(verifyData.users || []).map((u: any) => {
-                      const preview =
-                        u.props && Object.keys(u.props).length
-                          ? Object.entries(u.props)
-                              .slice(0, 4)
-                              .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
-                              .join(" • ")
-                          : "—";
-                      return (
-                        <tr key={String(u._id)} className="border-t">
-                          <td className="px-3 py-2 font-mono text-[12px]">{String(u._id)}</td>
-                          <td className="px-3 py-2">{u.username || "(sem username)"}</td>
-                          <td className="px-3 py-2 text-zinc-600">{preview}</td>
-                          <td className="px-3 py-2 text-right">
-                            <button
-                              className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
-                              onClick={() => openEditUser(u)}
-                            >
-                              Editar
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {!verifyData.users?.length && (
-                      <tr>
-                        <td className="px-3 py-5 text-zinc-500" colSpan={4}>
-                          Nenhum usuário retornado.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* Seção de usuários removida deste detalhe */}
 
             <div className="mt-4 flex items-center justify-end">
               <button
@@ -823,13 +725,10 @@ export default function TenantsPage() {
         <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
           <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">
-                {isCreateUser ? "Adicionar usuário" : "Editar usuário"}
-              </h3>
+              <h3 className="text-lg font-semibold">Editar usuário</h3>
               <button
                 onClick={() => {
                   setEditOpen(false);
-                  setIsCreateUser(false);
                 }}
                 className="px-2 py-1 rounded hover:bg-zinc-100"
               >
@@ -862,7 +761,7 @@ export default function TenantsPage() {
                 <input
                   className="input w-full"
                   type="password"
-                  placeholder={isCreateUser ? "" : "(deixe em branco para não alterar)"}
+                  placeholder="(deixe em branco para não alterar)"
                   value={editForm.password}
                   onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
                 />
@@ -915,7 +814,6 @@ export default function TenantsPage() {
                   className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
                   onClick={() => {
                     setEditOpen(false);
-                    setIsCreateUser(false);
                   }}
                 >
                   Cancelar
