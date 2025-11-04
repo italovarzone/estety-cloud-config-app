@@ -24,6 +24,14 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="pt-br">
+      <head>
+        <meta name="theme-color" content="#bca49d" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+      </head>
       <body>
         {user.authed && <Header authed={user.authed} username={user.username} />}
         <main className={user.authed ? "container py-6" : ""}>
