@@ -1,6 +1,5 @@
 import { getDb } from "./mongo";
 import { MongoClient, ServerApiVersion } from "mongodb";
-import { sendPushToAll } from "./push";
 import { sendMail } from "./mailer";
 
 let started = false;
@@ -69,10 +68,7 @@ export async function runHealthOnce() {
 
   if (issues.length) {
     const title = "Alerta de Saúde — Estety Cloud";
-    const body = issues.slice(0, 5).join(" \n");
-    try { await sendPushToAll(title, body, { issues }); } catch {}
-
-    // envia e-mail para operação
+    // envia e-mail para operação (Web Push removido)
     const html = `
       <h2>${title}</h2>
       <p>Os seguintes problemas foram detectados:</p>

@@ -1,13 +1,13 @@
 {
   "name": "Estety Cloud Config",
-  "short_name": "Config",
+  "short_name": "EC Config",
   "description": "Painel Config Service do Estety Cloud",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#bca49d",
+  "theme_color": "#c0c0c0ff",
   "icons": [
     {
       "src": "/engrenagem.png",

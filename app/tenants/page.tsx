@@ -556,7 +556,7 @@ export default function TenantsPage() {
             </div>
           </div>
         ) : (
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-sm table-wrap">
             <thead className="bg-zinc-50">
               <tr>
                 <th className="px-4 py-3 text-left w-10"> </th>
@@ -829,7 +829,7 @@ export default function TenantsPage() {
               </div>
 
               <div className="overflow-x-auto border rounded-lg">
-                <table className="min-w-full text-sm">
+                <table className="min-w-full text-sm table-wrap">
                   <thead className="bg-zinc-50">
                     <tr>
                       <th className="px-3 py-2 text-left">Data</th>
@@ -868,8 +868,8 @@ export default function TenantsPage() {
                               <span className="text-zinc-500">-</span>
                             )}
                           </td>
-                          <td className="px-3 py-2 align-top max-w-[260px] truncate" title={String(recip)}>{String(recip)}</td>
-                          <td className="px-3 py-2 align-top max-w-[360px] truncate" title={contentPreview}>{contentPreview}</td>
+                          <td className="px-3 py-2 align-top" title={String(recip)}>{String(recip)}</td>
+                          <td className="px-3 py-2 align-top" title={contentPreview}>{contentPreview}</td>
                         </tr>
                       );
                     })}

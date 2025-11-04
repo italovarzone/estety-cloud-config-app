@@ -153,7 +153,7 @@ export default function UsersEstetyCloudPage() {
         {loading ? (
           <div className="absolute inset-0 grid place-items-center"><div className="flex items-center gap-3 text-zinc-600"><span className="spinner" /><span>Carregando…</span></div></div>
         ) : (
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-sm table-wrap">
             <thead className="bg-zinc-50">
               <tr><th className="px-4 py-3 text-left">E-mail</th><th className="px-4 py-3 text-left">Tenants</th><th className="px-4 py-3 text-left">Tipo</th><th className="px-4 py-3 text-left">Diretivas</th><th className="px-4 py-3 text-right">Ações</th></tr>
             </thead>

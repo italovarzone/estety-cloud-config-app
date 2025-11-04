@@ -22,3 +22,14 @@ body { @apply bg-[var(--bg)] text-zinc-900; }
 .badge-green { @apply bg-emerald-100 text-emerald-800; }
 .badge-gray { @apply bg-zinc-100 text-zinc-800; }
 .navlink { @apply text-sm text-zinc-600 hover:text-zinc-900; }
+
+/* Make tables display full data without truncation */
+.table-wrap th,
+.table-wrap td {
+  white-space: normal; /* allow wrapping */
+  word-break: break-word; /* break long words/URIs */
+  overflow-wrap: anywhere; /* as needed for very long tokens */
+}
+
+/* Helper to keep small cells compact when needed */
+.nowrap { white-space: nowrap; }

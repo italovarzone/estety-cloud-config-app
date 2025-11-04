@@ -93,7 +93,7 @@ export default function DirectivesPage() {
             </div>
           </div>
         ) : (
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-sm table-wrap">
             <thead className="bg-zinc-50">
               <tr>
                 <th className="px-4 py-3 text-left">Nome</th>
