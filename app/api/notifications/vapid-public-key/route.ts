@@ -3,7 +3,9 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const pub = process.env.VAPID_PUBLIC_KEY || "";
-  if (!pub) return new NextResponse("missing_key", { status: 500 });
-  return NextResponse.json({ key: pub }, { headers: { "cache-control": "no-store" } });
+  const raw = process.env.VAPID_PUBLIC_KEY || "";
+  if (!raw) return new NextResponse("missing_key", { status: 500 });
+  // remove aspas e quebras de linha acidentais do .env
+  const key = raw.replace(/["'\s]/g, "");
+  return NextResponse.json({ key }, { headers: { "cache-control": "no-store" } });
 }

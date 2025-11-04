@@ -82,7 +82,12 @@ export default function NotificationsInit() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub),
       });
-      if (!save.ok) throw new Error('save_failed');
+      if (!save.ok) {
+        let detail = '';
+        try { detail = await save.text(); } catch {}
+        const err = new Error('save_failed' + (detail ? `:${detail}` : ''));
+        throw err;
+      }
       setShouldAsk(false);
     } catch (e) {
       console.warn("push subscribe failed", e);
@@ -90,6 +95,7 @@ export default function NotificationsInit() {
       if (msg === 'sw_ready_timeout') setError('Service Worker não ficou pronto. Recarregue o app e tente novamente.');
       else if (msg === 'push_unsupported') setError('Seu dispositivo/navegador não suporta Push Notifications.');
       else if (msg === 'missing_vapid_key') setError('Chave de push não configurada.');
+      else if (/save_failed/i.test(msg)) setError('Falha ao salvar inscrição no servidor.');
       else setError('Falha ao ativar notificações.');
       // permite tentar novamente no banner caso falhe
       localStorage.removeItem('notifAsked');
