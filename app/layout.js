@@ -2,6 +2,8 @@ import "./globals.css";
 import Header from "./components/Header";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import NotificationsInit from "./components/NotificationsInit";
+import { initHealthCron } from "../lib/healthCron";
 
 export const metadata = { title: "Config Service — Estety Cloud" };
 
@@ -21,6 +23,8 @@ async function getUser() {
 
 export default async function RootLayout({ children }) {
   const user = await getUser();
+  // inicia cron no primeiro acesso ao servidor (evita múltiplas execuções via guard interno)
+  initHealthCron();
 
   return (
     <html lang="pt-br">
@@ -37,6 +41,7 @@ export default async function RootLayout({ children }) {
         <main className={user.authed ? "container py-6" : ""}>
           {children}
         </main>
+        <NotificationsInit />
       </body>
     </html>
   );
