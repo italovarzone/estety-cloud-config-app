@@ -20,6 +20,14 @@ export default function NotificationsInit() {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
 
+    // iOS PWA requer app instalado em tela inicial para permitir push
+    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator as any).standalone;
+    if (!isStandalone && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      setShouldAsk(true);
+      setError('No iPhone, instale o app na Tela de Início para ativar notificações.');
+      return;
+    }
+
     if (Notification.permission === "granted") {
       subscribe();
       return;
@@ -39,7 +47,16 @@ export default function NotificationsInit() {
 
   async function getReadyRegistration(): Promise<ServiceWorkerRegistration> {
     // tenta obter prontamente; se não houver, espera o ready com timeout
-    const existing = await navigator.serviceWorker.getRegistration();
+    let existing = await navigator.serviceWorker.getRegistration();
+    if (!existing) {
+      try {
+        // fallback: tenta registrar explicitamente (em alguns cenários o auto-register pode falhar)
+        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        existing = reg;
+      } catch (e) {
+        // ignora, vai tentar o ready com timeout
+      }
+    }
     if (existing) return existing;
     return await timeout(navigator.serviceWorker.ready, 8000);
   }
@@ -74,6 +91,9 @@ export default function NotificationsInit() {
       else if (msg === 'push_unsupported') setError('Seu dispositivo/navegador não suporta Push Notifications.');
       else if (msg === 'missing_vapid_key') setError('Chave de push não configurada.');
       else setError('Falha ao ativar notificações.');
+      // permite tentar novamente no banner caso falhe
+      localStorage.removeItem('notifAsked');
+      setShouldAsk(true);
     } finally {
       setBusy(false);
     }
@@ -81,10 +101,15 @@ export default function NotificationsInit() {
 
   async function onEnable() {
     try {
-      localStorage.setItem("notifAsked", "yes");
       const perm = await Notification.requestPermission();
-      if (perm === "granted") await subscribe();
-      else setShouldAsk(false);
+      if (perm === "granted") {
+        await subscribe();
+        // marca como perguntado só após uma tentativa válida
+        localStorage.setItem("notifAsked", "yes");
+      } else {
+        // usuário recusou: mantém possibilidade de perguntar novamente no futuro
+        setShouldAsk(true);
+      }
     } catch {}
   }
 
