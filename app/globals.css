@@ -32,5 +32,11 @@ body { @apply bg-[var(--bg)] text-zinc-900; }
   hyphens: auto;              /* optional hyphenation for supported locales */
 }
 
+/* Alternative mode: keep cells on a single line and rely on horizontal scroll */
+.table-nowrap th,
+.table-nowrap td {
+  white-space: nowrap;
+}
+
 /* Helper to keep small cells compact when needed */
 .nowrap { white-space: nowrap; }
