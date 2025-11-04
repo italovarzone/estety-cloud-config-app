@@ -34,7 +34,7 @@ export default async function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link rel="apple-touch-icon" href="/engrenagem.png" />
+        <link rel="apple-touch-icon" href="/logo_pwd.png" />
       </head>
       <body>
         {user.authed && <Header authed={user.authed} username={user.username} />}

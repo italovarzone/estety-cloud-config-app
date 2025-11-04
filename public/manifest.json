@@ -10,13 +10,13 @@
   "theme_color": "#c0c0c0ff",
   "icons": [
     {
-      "src": "/engrenagem.png",
+      "src": "/logo_pwd.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/engrenagem.png",
+      "src": "/logo_pwd.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
