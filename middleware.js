@@ -19,6 +19,11 @@ const EXCEPTIONS = [
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get("config_token")?.value;
+  const apiKeyHeader =
+    req.headers.get("x-config-api-key") ||
+    (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const hasValidApiKey = !!process.env.CONFIG_API_KEY &&
+    apiKeyHeader && apiKeyHeader.trim() === String(process.env.CONFIG_API_KEY).trim();
 
   // 1) HOME redirect logic
   if (pathname === "/") {
@@ -43,6 +48,11 @@ export async function middleware(req) {
   const isProtected =
     PROTECTED.some((p) => pathname.startsWith(p)) &&
     !EXCEPTIONS.some((e) => pathname.startsWith(e));
+
+  // Se é uma chamada de API com x-config-api-key válida, libera sem exigir JWT
+  if (pathname.startsWith("/api/") && hasValidApiKey) {
+    return NextResponse.next();
+  }
 
   if (!isProtected) {
     return NextResponse.next();
