@@ -1,6 +1,7 @@
 // app/tenants/page.tsx
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ResponsiveDialog from "../components/ResponsiveDialog";
 
 // pega o _id mesmo que venha como {$oid:"..."}
 const oid = (x: any) => (x && typeof x === "object" && "$oid" in x ? x.$oid : x);
@@ -618,116 +619,113 @@ export default function TenantsPage() {
       </div>
 
       {/* --- MODAL CADASTRAR TENANT --- */}
-      {createOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(760px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Cadastrar Tenant</h3>
-              <button onClick={() => setCreateOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">
-                ✕
+      <ResponsiveDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Cadastrar Tenant"
+        size="md"
+        footer={(
+          <div className="flex items-center justify-between">
+            {saveMsg && (
+              <span className={saveMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {saveMsg.text}
+              </span>
+            )}
+            <div className="flex gap-2">
+              <button type="button" className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setCreateOpen(false)}>
+                Cancelar
+              </button>
+              <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" form="tenant-create-form" type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
               </button>
             </div>
-
-            <form onSubmit={handleCreate}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div className="md:col-span-3">
-                  <label className="block text-sm mb-1">tenantId</label>
-                  <input className="input w-full" value={form.tenantId} disabled />
-                  <div className="text-xs text-zinc-500 mt-1">Gerado automaticamente no backend</div>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">name *</label>
-                  <input
-                    className="input w-full"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">slug</label>
-                  <input
-                    className="input w-full"
-                    value={form.slug}
-                    onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">dbName *</label>
-                  <input
-                    className="input w-full"
-                    value={form.dbName}
-                    onChange={(e) => setForm({ ...form, dbName: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm mb-1">mongoUri</label>
-                  <input
-                    className="input w-full"
-                    value={form.mongoUri}
-                    onChange={(e) => setForm({ ...form, mongoUri: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">status</label>
-                  <select
-                    className="input w-full"
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                  >
-                    <option value="active">active</option>
-                    <option value="inactive">inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                {saveMsg && (
-                  <span
-                    className={saveMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}
-                  >
-                    {saveMsg.text}
-                  </span>
-                )}
-                <div className="flex gap-2">
-                  <button type="button" className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setCreateOpen(false)}>
-                    Cancelar
-                  </button>
-                  <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" type="submit" disabled={saving}>
-                    {saving ? "Salvando..." : "Salvar"}
-                  </button>
-                </div>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      >
+        <form id="tenant-create-form" onSubmit={handleCreate}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="md:col-span-3">
+              <label className="block text-sm mb-1">tenantId</label>
+              <input className="input w-full" value={form.tenantId} disabled />
+              <div className="text-xs text-zinc-500 mt-1">Gerado automaticamente no backend</div>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">name *</label>
+              <input
+                className="input w-full"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">slug</label>
+              <input
+                className="input w-full"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">dbName *</label>
+              <input
+                className="input w-full"
+                value={form.dbName}
+                onChange={(e) => setForm({ ...form, dbName: e.target.value })}
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm mb-1">mongoUri</label>
+              <input
+                className="input w-full"
+                value={form.mongoUri}
+                onChange={(e) => setForm({ ...form, mongoUri: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">status</label>
+              <select
+                className="input w-full"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+              >
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </ResponsiveDialog>
 
       {/* --- MODAL DETALHES --- */}
       {modalOpen && verifyData && (
-        <div className="fixed inset-0 bg-black/30 grid place-items-center z-50">
-          <div className="bg-white w-[min(980px,96vw)] rounded-2xl p-5 shadow-xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Detalhes do Tenant</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => currentTenant && openEditTenant(currentTenant)}
-                  className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
-                >
-                  Editar
-                </button>
-                {/* Fluxo de criação de usuário removido deste contexto */}
-                <button onClick={copyRawJSON} className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50">
-                  Copiar JSON
-                </button>
-                <button onClick={() => setModalOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">
-                  ✕
-                </button>
-              </div>
+        <ResponsiveDialog
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Detalhes do Tenant"
+          size="lg"
+          footer={(
+            <div className="flex items-center justify-end">
+              <button onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-lg bg-zinc-900 text-white">
+                Fechar
+              </button>
             </div>
+          )}
+        >
+          <div className="flex items-center justify-end gap-2 mb-3">
+            <button
+              onClick={() => currentTenant && openEditTenant(currentTenant)}
+              className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
+            >
+              Editar
+            </button>
+            <button onClick={copyRawJSON} className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50">
+              Copiar JSON
+            </button>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm rounded-xl border p-3 bg-zinc-50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm rounded-xl border p-3 bg-zinc-50">
               <div>
                 <div>
                   <b>Status:</b>{" "}
@@ -978,344 +976,230 @@ export default function TenantsPage() {
                 );
               })()}
             </div>
-
-            <div className="mt-4 flex items-center justify-end">
-              <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-zinc-900 text-white"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
+        </ResponsiveDialog>
       )}
 
       {/* --- MODAL EDITAR/CRIAR USUÁRIO --- */}
-      {editOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Editar usuário</h3>
+      <ResponsiveDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Editar usuário"
+        size="md"
+        footer={(
+          <div className="flex items-center justify-between">
+            {editMsg && (
+              <span className={editMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {editMsg.text}
+              </span>
+            )}
+            <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setEditOpen(false);
-                }}
-                className="px-2 py-1 rounded hover:bg-zinc-100"
+                className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+                onClick={() => { setEditOpen(false); openUserPermissions(editForm); }}
               >
-                ✕
+                Permissões
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+                onClick={() => setEditOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+                disabled={editLoading}
+                onClick={handleSaveUser}
+              >
+                {editLoading ? "Salvando..." : "Salvar"}
               </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm mb-1">tenantId</label>
-                <input
-                  className="input w-full"
-                  value={editForm.tenantId}
-                  onChange={(e) => setEditForm({ ...editForm, tenantId: e.target.value })}
-                />
-                <div className="text-xs text-zinc-500 mt-1">
-                  Se já existir, será substituído pelo valor acima.
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">username</label>
-                <input
-                  className="input w-full"
-                  value={editForm.username}
-                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">password</label>
-                <input
-                  className="input w-full"
-                  type="password"
-                  placeholder="(deixe em branco para não alterar)"
-                  value={editForm.password}
-                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">city</label>
-                <input
-                  className="input w-full"
-                  value={editForm.city}
-                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">pix_key</label>
-                <input
-                  className="input w-full"
-                  value={editForm.pix_key}
-                  onChange={(e) => setEditForm({ ...editForm, pix_key: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">pix_name</label>
-                <input
-                  className="input w-full"
-                  value={editForm.pix_name}
-                  onChange={(e) => setEditForm({ ...editForm, pix_name: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              {editMsg && (
-                <span
-                  className={editMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}
-                >
-                  {editMsg.text}
-                </span>
-              )}
-              <div className="flex gap-2">
-                <button
-                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
-                  onClick={() => {
-                    setEditOpen(false);
-                    openUserPermissions(editForm);
-                  }}
-                >
-                  Permissões
-                </button>
-                <button
-                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
-                  onClick={() => {
-                    setEditOpen(false);
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
-                  disabled={editLoading}
-                  onClick={handleSaveUser}
-                >
-                  {editLoading ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
+          </div>
+        )}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm mb-1">tenantId</label>
+            <input
+              className="input w-full"
+              value={editForm.tenantId}
+              onChange={(e) => setEditForm({ ...editForm, tenantId: e.target.value })}
+            />
+            <div className="text-xs text-zinc-500 mt-1">Se já existir, será substituído pelo valor acima.</div>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">username</label>
+            <input
+              className="input w-full"
+              value={editForm.username}
+              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">password</label>
+            <input
+              className="input w-full"
+              type="password"
+              placeholder="(deixe em branco para não alterar)"
+              value={editForm.password}
+              onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">city</label>
+            <input className="input w-full" value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">pix_key</label>
+            <input className="input w-full" value={editForm.pix_key} onChange={(e) => setEditForm({ ...editForm, pix_key: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">pix_name</label>
+            <input className="input w-full" value={editForm.pix_name} onChange={(e) => setEditForm({ ...editForm, pix_name: e.target.value })} />
           </div>
         </div>
-      )}
+      </ResponsiveDialog>
 
       {/* --- MODAL EDITAR TENANT --- */}
-      {tenantEditOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Editar tenant</h3>
-              <button onClick={() => setTenantEditOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm mb-1">name *</label>
-                <input
-                  className="input w-full"
-                  value={tenantEditForm.name}
-                  onChange={(e) => setTenantEditForm({ ...tenantEditForm, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">slug</label>
-                <input
-                  className="input w-full"
-                  value={tenantEditForm.slug}
-                  onChange={(e) => setTenantEditForm({ ...tenantEditForm, slug: e.target.value })}
-                />
-                <div className="text-xs text-zinc-500 mt-1">Deixe em branco para remover.</div>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">dbName *</label>
-                <input
-                  className="input w-full"
-                  value={tenantEditForm.dbName}
-                  onChange={(e) => setTenantEditForm({ ...tenantEditForm, dbName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">mongoUri</label>
-                <input
-                  className="input w-full"
-                  value={tenantEditForm.mongoUri}
-                  onChange={(e) => setTenantEditForm({ ...tenantEditForm, mongoUri: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">status</label>
-                <select
-                  className="input w-full"
-                  value={tenantEditForm.status}
-                  onChange={(e) => setTenantEditForm({ ...tenantEditForm, status: e.target.value as any })}
-                >
-                  <option value="active">active</option>
-                  <option value="inactive">inactive</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              {tenantEditMsg && (
-                <span
-                  className={
-                    tenantEditMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"
-                  }
-                >
-                  {tenantEditMsg.text}
-                </span>
-              )}
-              <div className="flex gap-2">
-                <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setTenantEditOpen(false)}>
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
-                  disabled={tenantEditSaving}
-                  onClick={handleSaveTenant}
-                >
-                  {tenantEditSaving ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {userPermOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[80]">
-          <div className="bg-white w-[min(600px,96vw)] rounded-2xl p-5 shadow-2xl relative">
-            {/* Cabeçalho */}
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Permissões do Usuário</h3>
-              <button
-                onClick={() => setUserPermOpen(false)}
-                className="px-2 py-1 rounded hover:bg-zinc-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Ações rápidas */}
-            <div className="flex items-center justify-end gap-2 mb-3">
-              <button
-                onClick={() => setConfirmAction("selectAll")}
-                className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100"
-              >
-                Selecionar Todos
-              </button>
-              <button
-                onClick={() => setConfirmAction("removeAll")}
-                className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100"
-              >
-                Remover Todos
-              </button>
-            </div>
-
-            {/* Lista de diretivas */}
-            <div className="max-h-[400px] overflow-auto border rounded-lg p-3 bg-zinc-50">
-              {availableUserDirectives.map((d) => (
-                <label key={d._id} className="flex items-center gap-2 mb-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedUserDirectives.includes(d.code)}
-                    onChange={(e) =>
-                      setSelectedUserDirectives((curr) =>
-                        e.target.checked
-                          ? [...curr, d.code]
-                          : curr.filter((c) => c !== d.code)
-                      )
-                    }
-                  />
-                  <span>
-                    <b>{d.name}</b>{" "}
-                    <span className="text-xs text-zinc-500">({d.code})</span>
-                  </span>
-                </label>
-              ))}
-              {!availableUserDirectives.length && (
-                <div className="text-sm text-zinc-500">Nenhuma diretiva disponível.</div>
-              )}
-            </div>
-
-            {/* Rodapé */}
-            <div className="mt-4 flex items-center justify-between">
-              {userPermMsg && (
-                <span
-                  className={
-                    userPermMsg.type === "ok"
-                      ? "text-emerald-700 text-sm"
-                      : "text-red-600 text-sm"
-                  }
-                >
-                  {userPermMsg.text}
-                </span>
-              )}
-              <div className="flex gap-2">
-                <button
-                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
-                  onClick={() => setUserPermOpen(false)}
-                >
-                  Fechar
-                </button>
-                <button
-                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
-                  disabled={userPermSaving}
-                  onClick={handleSaveUserPermissions}
-                >
-                  {userPermSaving ? "Salvando..." : "Salvar"}
-                </button>
-              </div>
-            </div>
-
-            {/* 🔒 Modal de confirmação */}
-            {confirmAction && (
-              <div className="absolute inset-0 bg-black/40 grid place-items-center rounded-2xl z-10">
-                <div className="bg-white p-5 rounded-xl shadow-xl max-w-sm w-[90%] text-center">
-                  <h4 className="text-lg font-semibold mb-2">
-                    Tem certeza que deseja {confirmAction === "selectAll" ? "selecionar todas" : "remover todas"} as permissões?
-                  </h4>
-                  <p className="text-sm text-zinc-500 mb-4">
-                    Essa ação pode ser revertida antes de salvar.
-                  </p>
-                  <div className="flex justify-center gap-3">
-                    <button
-                      onClick={() => setConfirmAction(null)}
-                      className="px-4 py-2 rounded-lg border hover:bg-zinc-100"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirmAction === "selectAll") {
-                          setSelectedUserDirectives(
-                            availableUserDirectives.map((d) => d.code)
-                          );
-                        } else if (confirmAction === "removeAll") {
-                          setSelectedUserDirectives([]);
-                        }
-                        setConfirmAction(null);
-                      }}
-                      className={`px-4 py-2 rounded-lg text-white ${
-                        confirmAction === "selectAll"
-                          ? "bg-emerald-600 hover:bg-emerald-700"
-                          : "bg-red-600 hover:bg-red-700"
-                      }`}
-                    >
-                      Confirmar
-                    </button>
-                  </div>
-                </div>
-              </div>
+      <ResponsiveDialog
+        open={tenantEditOpen}
+        onClose={() => setTenantEditOpen(false)}
+        title="Editar tenant"
+        size="md"
+        footer={(
+          <div className="flex items-center justify-between">
+            {tenantEditMsg && (
+              <span className={tenantEditMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {tenantEditMsg.text}
+              </span>
             )}
+            <div className="flex gap-2">
+              <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setTenantEditOpen(false)}>
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+                disabled={tenantEditSaving}
+                onClick={handleSaveTenant}
+              >
+                {tenantEditSaving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        )}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm mb-1">name *</label>
+            <input className="input w-full" value={tenantEditForm.name} onChange={(e) => setTenantEditForm({ ...tenantEditForm, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">slug</label>
+            <input className="input w-full" value={tenantEditForm.slug} onChange={(e) => setTenantEditForm({ ...tenantEditForm, slug: e.target.value })} />
+            <div className="text-xs text-zinc-500 mt-1">Deixe em branco para remover.</div>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">dbName *</label>
+            <input className="input w-full" value={tenantEditForm.dbName} onChange={(e) => setTenantEditForm({ ...tenantEditForm, dbName: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">mongoUri</label>
+            <input className="input w-full" value={tenantEditForm.mongoUri} onChange={(e) => setTenantEditForm({ ...tenantEditForm, mongoUri: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">status</label>
+            <select className="input w-full" value={tenantEditForm.status} onChange={(e) => setTenantEditForm({ ...tenantEditForm, status: e.target.value as any })}>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
           </div>
         </div>
-      )}
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={userPermOpen}
+        onClose={() => setUserPermOpen(false)}
+        title="Permissões do Usuário"
+        size="sm"
+        footer={(
+          <div className="flex items-center justify-between">
+            {userPermMsg && (
+              <span className={userPermMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {userPermMsg.text}
+              </span>
+            )}
+            <div className="flex gap-2">
+              <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setUserPermOpen(false)}>
+                Fechar
+              </button>
+              <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" disabled={userPermSaving} onClick={handleSaveUserPermissions}>
+                {userPermSaving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        )}
+      >
+        <div className="flex items-center justify-end gap-2 mb-3">
+          <button onClick={() => setConfirmAction("selectAll")} className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100">
+            Selecionar Todos
+          </button>
+          <button onClick={() => setConfirmAction("removeAll")} className="text-sm px-3 py-1.5 rounded-lg border border-zinc-300 hover:bg-zinc-100">
+            Remover Todos
+          </button>
+        </div>
+        <div className="max-h-[400px] overflow-auto border rounded-lg p-3 bg-zinc-50">
+          {availableUserDirectives.map((d) => (
+            <label key={d._id} className="flex items-center gap-2 mb-1">
+              <input
+                type="checkbox"
+                checked={selectedUserDirectives.includes(d.code)}
+                onChange={(e) =>
+                  setSelectedUserDirectives((curr) => (e.target.checked ? [...curr, d.code] : curr.filter((c) => c !== d.code)))
+                }
+              />
+              <span>
+                <b>{d.name}</b> <span className="text-xs text-zinc-500">({d.code})</span>
+              </span>
+            </label>
+          ))}
+          {!availableUserDirectives.length && (
+            <div className="text-sm text-zinc-500">Nenhuma diretiva disponível.</div>
+          )}
+        </div>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        title="Confirmar ação"
+        size="sm"
+        footer={(
+          <div className="flex justify-center gap-3">
+            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border hover:bg-zinc-100">
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                if (confirmAction === "selectAll") {
+                  setSelectedUserDirectives(availableUserDirectives.map((d) => d.code));
+                } else {
+                  setSelectedUserDirectives([]);
+                }
+                setConfirmAction(null);
+              }}
+              className={`px-4 py-2 rounded-lg text-white ${confirmAction === "selectAll" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}
+            >
+              Confirmar
+            </button>
+          </div>
+        )}
+      >
+        <div className="text-center">
+          <h4 className="text-lg font-semibold">
+            Tem certeza que deseja {confirmAction === "selectAll" ? "selecionar todas" : "remover todas"} as permissões?
+          </h4>
+          <p className="text-sm text-zinc-500 mt-1">Essa ação pode ser revertida antes de salvar.</p>
+        </div>
+      </ResponsiveDialog>
 
       {/* styles util */}
       <style jsx global>{`

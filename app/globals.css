@@ -40,3 +40,38 @@ body { @apply bg-[var(--bg)] text-zinc-900; }
 
 /* Helper to keep small cells compact when needed */
 .nowrap { white-space: nowrap; }
+
+/* =============================
+   Responsive Modals (mobile-first)
+   - Fullscreen on small screens; card-like on md+
+============================= */
+.modal-overlay { @apply fixed inset-0 bg-black/40 grid place-items-center; }
+
+.modal-panel { 
+  /* mobile: fullscreen */
+  @apply w-screen h-[100dvh] max-h-[100dvh] overflow-auto bg-white rounded-none p-0 shadow-2xl;
+}
+.modal-panel-sm { /* alternative width used in some dialogs on desktop */ }
+
+@screen md {
+  .modal-panel { @apply w-[min(720px,96vw)] max-h-[90vh] rounded-2xl p-5; }
+  .modal-panel-sm { @apply w-[min(600px,96vw)] max-h-[90vh] rounded-2xl p-5 bg-white overflow-auto shadow-2xl; }
+}
+
+/* Fallback: if a page didn't adopt .modal-panel yet but uses the common pattern,
+   make it fill the screen on small devices to avoid broken layouts. */
+@media (max-width: 767.98px) {
+  .fixed.inset-0 > .bg-white.rounded-2xl {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    overflow: auto !important;
+  }
+}
+
+/* Helpers for sticky modal headers/footers inside .modal-panel */
+.modal-header { @apply sticky top-0 z-10 bg-white border-b border-zinc-100 p-4; }
+.modal-body   { @apply p-4 md:p-0; }
+.modal-footer { @apply sticky bottom-0 z-10 bg-white border-t border-zinc-100 p-4; }

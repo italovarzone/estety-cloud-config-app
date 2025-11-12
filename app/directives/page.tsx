@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import ResponsiveDialog from "../components/ResponsiveDialog";
 
 type Directive = {
   _id: string;
@@ -131,64 +132,59 @@ export default function DirectivesPage() {
       </div>
 
       {/* MODAL CADASTRO */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Cadastrar Diretiva</h3>
-              <button onClick={() => setModalOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">✕</button>
+      <ResponsiveDialog
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Cadastrar Diretiva"
+        size="md"
+        footer={(
+          <div className="flex items-center justify-between">
+            {msg && (
+              <span className={msg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {msg.text}
+              </span>
+            )}
+            <div className="flex gap-2">
+              <button type="button" className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setModalOpen(false)}>
+                Cancelar
+              </button>
+              <button form="directive-form" className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
             </div>
-
-            <form onSubmit={handleSave}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm mb-1">Nome *</label>
-                  <input
-                    className="input w-full"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Código *</label>
-                  <input
-                    className="input w-full font-mono"
-                    value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="mt-3">
-                <label className="block text-sm mb-1">Descrição</label>
-                <textarea
-                  className="input w-full"
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                {msg && (
-                  <span
-                    className={msg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}
-                  >
-                    {msg.text}
-                  </span>
-                )}
-                <div className="flex gap-2">
-                  <button type="button" className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setModalOpen(false)}>
-                    Cancelar
-                  </button>
-                  <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" disabled={saving}>
-                    {saving ? "Salvando..." : "Salvar"}
-                  </button>
-                </div>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      >
+        <form id="directive-form" onSubmit={handleSave}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1">Nome *</label>
+              <input
+                className="input w-full"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Código *</label>
+              <input
+                className="input w-full font-mono"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="block text-sm mb-1">Descrição</label>
+            <textarea
+              className="input w-full"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+        </form>
+      </ResponsiveDialog>
 
       <style jsx global>{`
         .input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;width:100%}

@@ -1,6 +1,7 @@
 // app/companies/page.tsx
 "use client";
 import { useEffect, useState } from "react";
+import ResponsiveDialog from "../components/ResponsiveDialog";
 
 type Tenant = { _id: string; name: string; tenantId: string };
 
@@ -317,157 +318,142 @@ export default function CompaniesPage() {
       </div>
 
       {/* MODAL CADASTRAR/EDITAR EMPRESA */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(920px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">
-                {editingId ? "Editar Empresa" : "Cadastrar Empresa"}
-              </h3>
-              <button
-                onClick={() => {
-                  setModalOpen(false);
-                  setEditingId(null);
-                }}
-                className="px-2 py-1 rounded hover:bg-zinc-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={save} className="grid gap-3 md:grid-cols-3">
-              <input
-                className="input"
-                placeholder="Nome *"
-                name="name"
-                value={form.name}
-                onChange={onChange}
-                required
-              />
-              <input
-                className="input"
-                placeholder="CEP *"
-                name="cep"
-                value={form.cep}
-                onChange={onChange}
-                onBlur={onCepBlur}
-                required
-              />
-              <select
-                className="input"
-                name="tenantRef"
-                value={form.tenantRef}
-                onChange={onChange}
-                required
-                disabled={tenantsLoading}
-              >
-                <option value="">
-                  {tenantsLoading ? "Carregando tenants…" : "Selecione o Tenant..."}
-                </option>
-                {!tenantsLoading &&
-                  tenants.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name} — {t.tenantId}
-                    </option>
-                  ))}
-              </select>
-
-              <input
-                className="input"
-                placeholder="Rua *"
-                name="rua"
-                value={form.rua}
-                onChange={onChange}
-                required
-              />
-              <input
-                className="input"
-                placeholder="Título (opcional)"
-                name="titulo"
-                value={form.titulo}
-                onChange={onChange}
-              />
-              <input
-                className="input"
-                placeholder="Bairro *"
-                name="bairro"
-                value={form.bairro}
-                onChange={onChange}
-                required
-              />
-              <input
-                className="input"
-                placeholder="Cidade *"
-                name="cidade"
-                value={form.cidade}
-                onChange={onChange}
-                required
-              />
-              <input
-                className="input"
-                placeholder="UF *"
-                name="uf"
-                value={form.uf}
-                onChange={onChange}
-                required
-              />
-
-              {/* Tipo de pessoa + doc com máscara dinâmica */}
-              <select className="input" value={form.tipoPessoa} onChange={onTipoPessoaChange}>
-                <option value="FISICA">Pessoa Física</option>
-                <option value="JURIDICA">Pessoa Jurídica</option>
-              </select>
-              <input
-                className="input"
-                placeholder={form.tipoPessoa === "FISICA" ? "CPF *" : "CNPJ *"}
-                name="cnpjCpf"
-                value={form.cnpjCpf}
-                onChange={onChange}
-                required
-              />
-
-              {/* Telefone/Celular */}
-              <input
-                className="input"
-                placeholder="Telefone/Celular *"
-                name="numeroContato"
-                value={form.numeroContato}
-                onChange={onChange}
-                required
-              />
-
-              <input
-                className="input"
-                placeholder="Slug"
-                name="slug"
-                value={form.slug}
-                onChange={onChange}
-                required
-              />
-
-              <div className="col-span-full flex items-center justify-end gap-2 mt-1">
-                <button
-                  className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
-                  type="button"
-                  onClick={() => {
-                    setModalOpen(false);
-                    setEditingId(null);
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
-                  type="submit"
-                  disabled={saving}
-                >
-                  {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar"}
-                </button>
-              </div>
-            </form>
+      <ResponsiveDialog
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingId(null); }}
+        title={editingId ? "Editar Empresa" : "Cadastrar Empresa"}
+        size="lg"
+        footer={(
+          <div className="flex items-center justify-end gap-2">
+            <button
+              className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+              type="button"
+              onClick={() => { setModalOpen(false); setEditingId(null); }}
+            >
+              Cancelar
+            </button>
+            <button
+              form="company-form"
+              className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+              type="submit"
+              disabled={saving}
+            >
+              {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar"}
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      >
+        <form id="company-form" onSubmit={save} className="grid gap-3 md:grid-cols-3">
+          <input
+            className="input"
+            placeholder="Nome *"
+            name="name"
+            value={form.name}
+            onChange={onChange}
+            required
+          />
+          <input
+            className="input"
+            placeholder="CEP *"
+            name="cep"
+            value={form.cep}
+            onChange={onChange}
+            onBlur={onCepBlur}
+            required
+          />
+          <select
+            className="input"
+            name="tenantRef"
+            value={form.tenantRef}
+            onChange={onChange}
+            required
+            disabled={tenantsLoading}
+          >
+            <option value="">
+              {tenantsLoading ? "Carregando tenants…" : "Selecione o Tenant..."}
+            </option>
+            {!tenantsLoading &&
+              tenants.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name} — {t.tenantId}
+                </option>
+              ))}
+          </select>
+
+          <input
+            className="input"
+            placeholder="Rua *"
+            name="rua"
+            value={form.rua}
+            onChange={onChange}
+            required
+          />
+          <input
+            className="input"
+            placeholder="Título (opcional)"
+            name="titulo"
+            value={form.titulo}
+            onChange={onChange}
+          />
+          <input
+            className="input"
+            placeholder="Bairro *"
+            name="bairro"
+            value={form.bairro}
+            onChange={onChange}
+            required
+          />
+          <input
+            className="input"
+            placeholder="Cidade *"
+            name="cidade"
+            value={form.cidade}
+            onChange={onChange}
+            required
+          />
+          <input
+            className="input"
+            placeholder="UF *"
+            name="uf"
+            value={form.uf}
+            onChange={onChange}
+            required
+          />
+
+          {/* Tipo de pessoa + doc com máscara dinâmica */}
+          <select className="input" value={form.tipoPessoa} onChange={onTipoPessoaChange}>
+            <option value="FISICA">Pessoa Física</option>
+            <option value="JURIDICA">Pessoa Jurídica</option>
+          </select>
+          <input
+            className="input"
+            placeholder={form.tipoPessoa === "FISICA" ? "CPF *" : "CNPJ *"}
+            name="cnpjCpf"
+            value={form.cnpjCpf}
+            onChange={onChange}
+            required
+          />
+
+          {/* Telefone/Celular */}
+          <input
+            className="input"
+            placeholder="Telefone/Celular *"
+            name="numeroContato"
+            value={form.numeroContato}
+            onChange={onChange}
+            required
+          />
+
+          <input
+            className="input"
+            placeholder="Slug"
+            name="slug"
+            value={form.slug}
+            onChange={onChange}
+            required
+          />
+        </form>
+      </ResponsiveDialog>
 
       {/* util styles */}
       <style jsx global>{`

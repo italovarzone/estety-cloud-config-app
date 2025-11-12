@@ -1,6 +1,7 @@
 "use client";
 import { headers } from "next/headers";
 import { useEffect, useState, useMemo } from "react";
+import ResponsiveDialog from "../components/ResponsiveDialog";
 
 type Msg = { type: "ok" | "error"; text: string } | null;
 
@@ -179,164 +180,237 @@ export default function UsersEstetyCloudPage() {
       </div>
 
       {/* --- MODAL CADASTRO/EDIÇÃO --- */}
-      {(createOpen || editOpen) && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[60]">
-          <div className="bg-white w-[min(720px,96vw)] rounded-2xl p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">{editOpen ? "Editar Usuário" : "Cadastrar Usuário"}</h3>
-              <button onClick={() => { setCreateOpen(false); setEditOpen(false); }} className="px-2 py-1 rounded hover:bg-zinc-100">✕</button>
+      <ResponsiveDialog
+        open={createOpen || editOpen}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditOpen(false);
+        }}
+        title={editOpen ? "Editar Usuário" : "Cadastrar Usuário"}
+        size="md"
+        footer={(
+          <div className="flex items-center justify-between">
+            {saveMsg && (
+              <span className={saveMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
+                {saveMsg.text}
+              </span>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border hover:bg-zinc-50"
+                onClick={() => {
+                  setCreateOpen(false);
+                  setEditOpen(false);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                form="user-form"
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div><label className="block text-sm mb-1">E-mail *</label>
-                  <input className="input w-full" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" required />
-                </div>
-                <div><label className="block text-sm mb-1">Senha {editOpen && "(deixe em branco para não alterar)"}</label>
-                  <input className="input w-full" type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} required={!editOpen} />
-                </div>
-              </div>
-
-              {/* Multi-Select Tenants */}
-              <div>
-                <label className="block text-sm mb-1">Tenants vinculados</label>
-                <select multiple className="input w-full h-32" onChange={(e) => {
-                  const values = Array.from(e.target.selectedOptions).map((o) => o.value);
-                  setForm({ ...form, tenantIds: values });
-                }} value={form.tenantIds}>
-                  {tenants.map((t) => (
-                    <option key={t.tenantId} value={t.tenantId}>{t.name} ({t.tenantId})</option>
-                  ))}
-                </select>
-                {form.tenantIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {form.tenantIds.map((tid) => {
-                      const tn = tenants.find((t) => t.tenantId === tid);
-                      return (
-                        <span key={tid} className="flex items-center gap-1 bg-zinc-100 border px-2 py-1 rounded-lg text-sm">
-                          {tn?.name || tid}
-                          <button onClick={() => setForm({ ...form, tenantIds: form.tenantIds.filter((x) => x !== tid) })} type="button" className="text-zinc-500 hover:text-red-600">✕</button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm mb-1">Tipo</label>
-                  <select className="input w-full" value={form.type} onChange={(e) => setForm({ ...form, type: Number(e.target.value) as 0 | 1 })}>
-                    <option value={0}>Operador</option>
-                    <option value={1}>Admin</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button type="button" onClick={openUserPermissions} className="w-full px-4 py-2 rounded-lg border hover:bg-zinc-50">
-                    Gerenciar Diretivas
-                  </button>
-                </div>
-              </div>
-
-              {/* Campos PIX */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm mb-1">PIX Key</label>
-                  <input className="input w-full" value={(form as any).pix_key || ""} onChange={(e) => setForm({ ...(form as any), pix_key: e.target.value } as any)} />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">PIX Name</label>
-                  <input className="input w-full" value={(form as any).pix_name || ""} onChange={(e) => setForm({ ...(form as any), pix_name: e.target.value } as any)} />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Cidade</label>
-                  <input className="input w-full" value={(form as any).city || ""} onChange={(e) => setForm({ ...(form as any), city: e.target.value } as any)} />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                {saveMsg && (
-                  <span className={saveMsg.type === "ok" ? "text-emerald-700 text-sm" : "text-red-600 text-sm"}>
-                    {saveMsg.text}
-                  </span>
-                )}
-                <div className="flex gap-2">
-                  <button type="button" className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => { setCreateOpen(false); setEditOpen(false); }}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="px-4 py-2 rounded-lg bg-zinc-900 text-white disabled:opacity-50" disabled={saving}>
-                    {saving ? "Salvando..." : "Salvar"}
-                  </button>
-                </div>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
-
-      {/* --- MODAL DIRETIVAS --- */}
-      {userPermOpen && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center z-[80]">
-          <div className="bg-white w-[min(600px,96vw)] rounded-2xl p-5 shadow-2xl relative">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Permissões do Usuário</h3>
-              <button onClick={() => setUserPermOpen(false)} className="px-2 py-1 rounded hover:bg-zinc-100">✕</button>
+        )}
+      >
+        <form id="user-form" onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1">E-mail *</label>
+              <input
+                className="input w-full"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                type="email"
+                required
+              />
             </div>
-
-            <div className="flex items-center justify-end gap-2 mb-3">
-              <button onClick={() => setConfirmAction("selectAll")} className="text-sm px-3 py-1.5 rounded-lg border hover:bg-zinc-100">Selecionar Todos</button>
-              <button onClick={() => setConfirmAction("removeAll")} className="text-sm px-3 py-1.5 rounded-lg border hover:bg-zinc-100">Remover Todos</button>
+            <div>
+              <label className="block text-sm mb-1">Senha {editOpen && "(deixe em branco para não alterar)"}</label>
+              <input
+                className="input w-full"
+                type="password"
+                value={form.password || ""}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required={!editOpen}
+              />
             </div>
+          </div>
 
-            <div className="max-h-[400px] overflow-auto border rounded-lg p-3 bg-zinc-50">
-              {availableUserDirectives.map((d) => (
-                <label key={d._id} className="flex items-center gap-2 mb-1">
-                  <input type="checkbox" checked={selectedUserDirectives.includes(d.code)} onChange={(e) => {
-                    setSelectedUserDirectives((curr) =>
-                      e.target.checked ? [...curr, d.code] : curr.filter((c) => c !== d.code)
-                    );
-                  }} />
-                  <span><b>{d.name}</b> <span className="text-xs text-zinc-500">({d.code})</span></span>
-                </label>
+          {/* Multi-Select Tenants */}
+          <div>
+            <label className="block text-sm mb-1">Tenants vinculados</label>
+            <select
+              multiple
+              className="input w-full h-32"
+              onChange={(e) => {
+                const values = Array.from(e.target.selectedOptions).map((o) => (o as HTMLOptionElement).value);
+                setForm({ ...form, tenantIds: values });
+              }}
+              value={form.tenantIds}
+            >
+              {tenants.map((t) => (
+                <option key={t.tenantId} value={t.tenantId}>
+                  {t.name} ({t.tenantId})
+                </option>
               ))}
-              {!availableUserDirectives.length && (
-                <div className="text-sm text-zinc-500">Nenhuma diretiva disponível.</div>
-              )}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              <div />
-              <div className="flex gap-2">
-                <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setUserPermOpen(false)}>Fechar</button>
-                <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white" onClick={() => setUserPermOpen(false)}>Salvar</button>
-              </div>
-            </div>
-
-            {confirmAction && (
-              <div className="absolute inset-0 bg-black/40 grid place-items-center rounded-2xl z-10">
-                <div className="bg-white p-5 rounded-xl shadow-xl max-w-sm w-[90%] text-center">
-                  <h4 className="text-lg font-semibold mb-2">
-                    Tem certeza que deseja {confirmAction === "selectAll" ? "selecionar todas" : "remover todas"}?
-                  </h4>
-                  <div className="flex justify-center gap-3 mt-4">
-                    <button onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border hover:bg-zinc-100">Cancelar</button>
-                    <button onClick={() => {
-                      if (confirmAction === "selectAll") {
-                        setSelectedUserDirectives(availableUserDirectives.map((d) => d.code));
-                      } else {
-                        setSelectedUserDirectives([]);
-                      }
-                      setConfirmAction(null);
-                    }} className={`px-4 py-2 rounded-lg text-white ${confirmAction === "selectAll" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}>
-                      Confirmar
-                    </button>
-                  </div>
-                </div>
+            </select>
+            {form.tenantIds.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {form.tenantIds.map((tid) => {
+                  const tn = tenants.find((t) => t.tenantId === tid);
+                  return (
+                    <span key={tid} className="flex items-center gap-1 bg-zinc-100 border px-2 py-1 rounded-lg text-sm">
+                      {tn?.name || tid}
+                      <button
+                        onClick={() => setForm({ ...form, tenantIds: form.tenantIds.filter((x) => x !== tid) })}
+                        type="button"
+                        className="text-zinc-500 hover:text-red-600"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1">Tipo</label>
+              <select
+                className="input w-full"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: Number(e.target.value) as 0 | 1 })}
+              >
+                <option value={0}>Operador</option>
+                <option value={1}>Admin</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={openUserPermissions}
+                className="w-full px-4 py-2 rounded-lg border hover:bg-zinc-50"
+              >
+                Gerenciar Diretivas
+              </button>
+            </div>
+          </div>
+
+          {/* Campos PIX */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm mb-1">PIX Key</label>
+              <input
+                className="input w-full"
+                value={(form as any).pix_key || ""}
+                onChange={(e) => setForm({ ...(form as any), pix_key: e.target.value } as any)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">PIX Name</label>
+              <input
+                className="input w-full"
+                value={(form as any).pix_name || ""}
+                onChange={(e) => setForm({ ...(form as any), pix_name: e.target.value } as any)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Cidade</label>
+              <input
+                className="input w-full"
+                value={(form as any).city || ""}
+                onChange={(e) => setForm({ ...(form as any), city: e.target.value } as any)}
+              />
+            </div>
+          </div>
+        </form>
+      </ResponsiveDialog>
+
+      {/* --- MODAL DIRETIVAS --- */}
+      <ResponsiveDialog
+        open={userPermOpen}
+        onClose={() => setUserPermOpen(false)}
+        title="Permissões do Usuário"
+        size="sm"
+        footer={(
+          <div className="flex items-center justify-end gap-2">
+            <button className="px-4 py-2 rounded-lg border hover:bg-zinc-50" onClick={() => setUserPermOpen(false)}>
+              Fechar
+            </button>
+            <button className="px-4 py-2 rounded-lg bg-zinc-900 text-white" onClick={() => setUserPermOpen(false)}>
+              Salvar
+            </button>
+          </div>
+        )}
+      >
+        <div className="flex items-center justify-end gap-2 mb-3">
+          <button onClick={() => setConfirmAction("selectAll")} className="text-sm px-3 py-1.5 rounded-lg border hover:bg-zinc-100">
+            Selecionar Todos
+          </button>
+          <button onClick={() => setConfirmAction("removeAll")} className="text-sm px-3 py-1.5 rounded-lg border hover:bg-zinc-100">
+            Remover Todos
+          </button>
         </div>
-      )}
+        <div className="max-h-[400px] overflow-auto border rounded-lg p-3 bg-zinc-50">
+          {availableUserDirectives.map((d) => (
+            <label key={d._id} className="flex items-center gap-2 mb-1">
+              <input
+                type="checkbox"
+                checked={selectedUserDirectives.includes(d.code)}
+                onChange={(e) => {
+                  setSelectedUserDirectives((curr) => (e.target.checked ? [...curr, d.code] : curr.filter((c) => c !== d.code)));
+                }}
+              />
+              <span>
+                <b>{d.name}</b> <span className="text-xs text-zinc-500">({d.code})</span>
+              </span>
+            </label>
+          ))}
+          {!availableUserDirectives.length && <div className="text-sm text-zinc-500">Nenhuma diretiva disponível.</div>}
+        </div>
+      </ResponsiveDialog>
+
+      {/* --- CONFIRMAÇÃO DE AÇÃO EM DIRETIVAS --- */}
+      <ResponsiveDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        title="Confirmar ação"
+        size="sm"
+        footer={(
+          <div className="flex justify-center gap-3">
+            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 rounded-lg border hover:bg-zinc-100">
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                if (confirmAction === "selectAll") {
+                  setSelectedUserDirectives(availableUserDirectives.map((d) => d.code));
+                } else {
+                  setSelectedUserDirectives([]);
+                }
+                setConfirmAction(null);
+              }}
+              className={`px-4 py-2 rounded-lg text-white ${confirmAction === "selectAll" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}
+            >
+              Confirmar
+            </button>
+          </div>
+        )}
+      >
+        <div className="text-center">
+          <h4 className="text-lg font-semibold">
+            Tem certeza que deseja {confirmAction === "selectAll" ? "selecionar todas" : "remover todas"}?
+          </h4>
+        </div>
+      </ResponsiveDialog>
 
       <style jsx global>{`
         .input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;width:100%}
