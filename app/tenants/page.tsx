@@ -87,7 +87,7 @@ export default function TenantsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsPage, setLogsPage] = useState(1);
-  const [logsPageSize, setLogsPageSize] = useState(10);
+  const [logsPageSize, setLogsPageSize] = useState(5);
   const [logFilterJob, setLogFilterJob] = useState("");
   const [logFilterChannel, setLogFilterChannel] = useState("");
   const [logFilterSuccess, setLogFilterSuccess] = useState(""); // "", "true", "false"
@@ -791,7 +791,7 @@ export default function TenantsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
                 <div>
                   <label className="block text-xs mb-1">Job</label>
-                  <input className="input w-full" placeholder="ex: agendamentos_30min" value={logFilterJob} onChange={(e)=>setLogFilterJob(e.target.value)} />
+                  <input className="input w-full" placeholder="ex: appointments:create" value={logFilterJob} onChange={(e)=>setLogFilterJob(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1">Canal</label>
@@ -799,6 +799,7 @@ export default function TenantsPage() {
                     <option value="">(todos)</option>
                     <option value="webpush">webpush</option>
                     <option value="email">email</option>
+                    <option value="crud">crud</option>
                   </select>
                 </div>
                 <div>
@@ -828,7 +829,8 @@ export default function TenantsPage() {
                 <div className="text-xs text-zinc-500">Página {logsPage} / {Math.max(1, Math.ceil((logsTotal||0)/(logsPageSize||10)))}</div>
               </div>
 
-              <div className="overflow-x-auto border rounded-lg">
+              {/* Desktop/tablet table */}
+              <div className="overflow-x-auto border rounded-lg hidden md:block">
                 <table className="min-w-full text-sm table-nowrap">
                   <thead className="bg-zinc-50">
                     <tr>
@@ -847,12 +849,24 @@ export default function TenantsPage() {
                       const recip = Array.isArray(l.recipient) ? l.recipient.join(', ') : (l.recipient || '-');
                       let contentPreview = '-';
                       if (l.channel === 'webpush') {
-                        const title = l?.content?.title || '';
-                        const body = l?.content?.body || '';
+                        const title = (l as any)?.content?.title || '';
+                        const body = (l as any)?.content?.body || '';
                         contentPreview = title || body ? `${title}${title && body ? ' — ' : ''}${body}` : '-';
                       } else if (l.channel === 'email') {
-                        const subj = l?.content?.subject || '';
+                        const subj = (l as any)?.content?.subject || '';
                         contentPreview = subj || '-';
+                      } else {
+                        // generic/crud: compact preview from content
+                        try {
+                          const raw = (l as any)?.content;
+                          if (raw && typeof raw === 'object') {
+                            const keys = Object.keys(raw);
+                            const kv = keys.slice(0, 4).map(k => `${k}: ${String((raw as any)[k]).slice(0, 40)}`);
+                            contentPreview = kv.length ? kv.join(', ') : '-';
+                          } else if (raw != null) {
+                            contentPreview = String(raw).slice(0, 80);
+                          }
+                        } catch {}
                       }
                       return (
                         <tr key={String((l as any)._id?._id || (l as any)._id || idx)} className="border-t">
@@ -882,14 +896,80 @@ export default function TenantsPage() {
                 </table>
               </div>
 
-              {/* paginação */}
-              <div className="mt-3 flex items-center justify-between">
-                <div className="text-xs text-zinc-500">Mostrando {logs.length} de {logsTotal}</div>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={logsPage <= 1 || logsLoading} onClick={()=>{ const p = Math.max(1, logsPage-1); setLogsPage(p); loadLogs(p); }}>Anterior</button>
-                  <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={logsPage >= Math.ceil((logsTotal||0)/(logsPageSize||10)) || logsLoading} onClick={()=>{ const p = logsPage+1; setLogsPage(p); loadLogs(p); }}>Próxima</button>
-                </div>
+              {/* Mobile list */}
+              <div className="md:hidden grid gap-2">
+                {logs.length ? (
+                  logs.map((l, idx) => {
+                    const dt = l.createdAt ? new Date(l.createdAt) : null;
+                    const when = dt ? dt.toLocaleString('pt-BR') : '-';
+                    const recip = Array.isArray(l.recipient) ? l.recipient.join(', ') : (l.recipient || '-');
+                    let contentPreview = '-';
+                    if (l.channel === 'webpush') {
+                      const title = (l as any)?.content?.title || '';
+                      const body = (l as any)?.content?.body || '';
+                      contentPreview = title || body ? `${title}${title && body ? ' — ' : ''}${body}` : '-';
+                    } else if (l.channel === 'email') {
+                      const subj = (l as any)?.content?.subject || '';
+                      contentPreview = subj || '-';
+                    } else {
+                      try {
+                        const raw = (l as any)?.content;
+                        if (raw && typeof raw === 'object') {
+                          const keys = Object.keys(raw);
+                          const kv = keys.slice(0, 4).map(k => `${k}: ${String((raw as any)[k]).slice(0, 40)}`);
+                          contentPreview = kv.length ? kv.join(', ') : '-';
+                        } else if (raw != null) {
+                          contentPreview = String(raw).slice(0, 80);
+                        }
+                      } catch {}
+                    }
+                    return (
+                      <div key={String((l as any)._id?._id || (l as any)._id || idx)} className="border rounded-lg p-3 bg-white">
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-zinc-500">{when}</div>
+                          <div className="text-xs px-2 py-0.5 rounded border bg-zinc-50">{l.channel || '-'}</div>
+                        </div>
+                        <div className="mt-1 font-medium">{l.job || '-'}</div>
+                        <div className="mt-1 text-xs">
+                          <span className="text-zinc-500 mr-1">Sucesso:</span>
+                          {l.success === true ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-emerald-700 bg-emerald-50 border border-emerald-200">true</span>
+                          ) : l.success === false ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-red-700 bg-red-50 border border-red-200">false</span>
+                          ) : (
+                            <span className="text-zinc-500">-</span>
+                          )}
+                        </div>
+                        {recip && recip !== '-' && (
+                          <div className="mt-1 text-xs"><span className="text-zinc-500">Destinatário:</span> {recip}</div>
+                        )}
+                        <div className="mt-2 text-sm">
+                          <span className="text-zinc-500">Conteúdo:</span> <span title={contentPreview}>{contentPreview}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-sm text-zinc-500 border rounded-lg p-4">{logsLoading ? 'Carregando…' : 'Sem registros para os filtros informados.'}</div>
+                )}
               </div>
+
+              {/* paginação */}
+              {(() => {
+                const pages = Math.max(1, Math.ceil((logsTotal || 0) / (logsPageSize || 5)));
+                const canPrev = logsPage > 1 && !logsLoading;
+                const canNext = logsPage < pages && !logsLoading;
+                return (
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-xs text-zinc-500">Mostrando {logs.length} de {logsTotal}</div>
+                    <div className="flex items-center gap-2">
+                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canPrev} onClick={()=>{ const p = Math.max(1, logsPage-1); setLogsPage(p); loadLogs(p); }}>Anterior</button>
+                      <div className="text-xs text-zinc-600">{logsPage} / {pages}</div>
+                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canNext} onClick={()=>{ const p = logsPage+1; setLogsPage(p); loadLogs(p); }}>Próxima</button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="mt-4 flex items-center justify-end">
