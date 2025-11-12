@@ -1,6 +1,6 @@
 // app/tenants/page.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // pega o _id mesmo que venha como {$oid:"..."}
 const oid = (x: any) => (x && typeof x === "object" && "$oid" in x ? x.$oid : x);
@@ -84,6 +84,7 @@ export default function TenantsPage() {
     createdAt?: string | Date;
   };
   const [logsLoading, setLogsLoading] = useState(false);
+  const logsReqSeq = useRef(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsPage, setLogsPage] = useState(1);
@@ -104,25 +105,30 @@ export default function TenantsPage() {
     return new Date(`${d}T23:59:59.999Z`).toISOString();
   }
 
-  async function loadLogs(page = 1) {
-    if (!currentCfgId) return;
+  async function loadLogs(page = 1, cfgIdOverride?: string | null, pageSizeOverride?: number) {
+    const cfgId = cfgIdOverride ?? currentCfgId;
+    if (!cfgId) return;
     setLogsLoading(true);
+    const seq = ++logsReqSeq.current;
     try {
       const qs = new URLSearchParams();
       qs.set("page", String(page));
-      qs.set("limit", String(logsPageSize || 10));
+      const limit = pageSizeOverride ?? logsPageSize ?? 5;
+      qs.set("limit", String(limit));
       if (logFilterJob.trim()) qs.set("job", logFilterJob.trim());
       if (logFilterChannel) qs.set("channel", logFilterChannel);
       if (logFilterSuccess) qs.set("success", logFilterSuccess);
       if (logFilterFrom) qs.set("from", dateToRangeStart(logFilterFrom));
       if (logFilterTo) qs.set("to", dateToRangeEnd(logFilterTo));
-      const res = await fetch(`/api/tenants/${currentCfgId}/logs?` + qs.toString(), { cache: "no-store" });
+      const res = await fetch(`/api/tenants/${cfgId}/logs?` + qs.toString(), { cache: "no-store" });
       const data = await res.json();
+      // Prevent race: ignore if a newer request has started
+      if (seq !== logsReqSeq.current) return;
       if (res.ok && data?.ok) {
         setLogs(data.items || []);
         setLogsTotal(data.total || 0);
         setLogsPage(data.page || page);
-        setLogsPageSize(data.pageSize || 10);
+        setLogsPageSize(data.pageSize || limit || 5);
       } else {
         setLogs([]);
         setLogsTotal(0);
@@ -311,12 +317,13 @@ export default function TenantsPage() {
       setLogs([]);
       setLogsTotal(0);
       setLogsPage(1);
+      setLogsPageSize(5);
       setLogFilterJob("");
       setLogFilterChannel("");
       setLogFilterSuccess("");
       setLogFilterFrom("");
       setLogFilterTo("");
-      await loadLogs(1);
+      await loadLogs(1, id, 5);
     } catch (e: any) {
       setVerifyData({ ok: false, status: "ERR", _raw: { error: String(e) }, users: [] });
       setModalOpen(true);
@@ -823,7 +830,7 @@ export default function TenantsPage() {
               </div>
 
               <div className="flex items-center justify-between mb-3">
-                <button className="btn" onClick={()=>{ setLogsPage(1); loadLogs(1); }} disabled={logsLoading}>
+                <button className="btn" onClick={()=>{ setLogsPage(1); loadLogs(1, currentCfgId); }} disabled={logsLoading}>
                   {logsLoading ? "Filtrando…" : "Aplicar filtros"}
                 </button>
                 <div className="text-xs text-zinc-500">Página {logsPage} / {Math.max(1, Math.ceil((logsTotal||0)/(logsPageSize||10)))}</div>
@@ -963,9 +970,9 @@ export default function TenantsPage() {
                   <div className="mt-3 flex items-center justify-between">
                     <div className="text-xs text-zinc-500">Mostrando {logs.length} de {logsTotal}</div>
                     <div className="flex items-center gap-2">
-                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canPrev} onClick={()=>{ const p = Math.max(1, logsPage-1); setLogsPage(p); loadLogs(p); }}>Anterior</button>
+                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canPrev} onClick={()=>{ const p = Math.max(1, logsPage-1); setLogsPage(p); loadLogs(p, currentCfgId); }}>Anterior</button>
                       <div className="text-xs text-zinc-600">{logsPage} / {pages}</div>
-                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canNext} onClick={()=>{ const p = logsPage+1; setLogsPage(p); loadLogs(p); }}>Próxima</button>
+                      <button className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50 disabled:opacity-50" disabled={!canNext} onClick={()=>{ const p = logsPage+1; setLogsPage(p); loadLogs(p, currentCfgId); }}>Próxima</button>
                     </div>
                   </div>
                 );
