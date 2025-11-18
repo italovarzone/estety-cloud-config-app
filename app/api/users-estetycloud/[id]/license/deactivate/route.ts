@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
-import { getDb } from "../../../../lib/mongo";
+import { ObjectId } from "mongodb";
+import { getDb } from "../../../../../../lib/mongo";
 
 async function ensureApiKey(req: Request) {
   try {
@@ -11,7 +12,6 @@ async function ensureApiKey(req: Request) {
       (headers["authorization"] || headers["Authorization"] || "").replace(/^Bearer\s+/i, "");
 
     if (!process.env.CONFIG_API_KEY) {
-      console.warn("[users-estetycloud/by-email] CONFIG_API_KEY não configurada");
       return NextResponse.json({ error: "config_missing" }, { status: 500 });
     }
     if (!given || given.trim() !== process.env.CONFIG_API_KEY.trim()) {
@@ -23,37 +23,30 @@ async function ensureApiKey(req: Request) {
   }
 }
 
-// GET /api/users-estetycloud/by-email?email=
-export async function GET(req: Request) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const unauthorized = await ensureApiKey(req);
   if (unauthorized) return unauthorized;
 
   try {
-    const url = new URL(req.url);
-    const email = String(url.searchParams.get("email") || "").trim().toLowerCase();
-    if (!email) return NextResponse.json({ error: "email_required" }, { status: 400 });
-
     const db = await getDb();
-    const user = await db
-      .collection("users_estetycloud")
-      .findOne({ email }, { projection: {
-        _id: 0,
-        userId: 1,
-        email: 1,
-        tenantIds: 1,
-        directives: 1,
-        type: 1,
-        pix_key: 1,
-        pix_name: 1,
-        city: 1,
-        license: 1,
-      }});
-
+    const _id = new ObjectId(params.id);
+    const user = await db.collection("users_estetycloud").findOne({ _id });
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-    return NextResponse.json(user, { headers: { "cache-control": "no-store" } });
+    const now = new Date();
+    const license = {
+      status: "inactive",
+      activatedAt: user?.license?.activatedAt || null,
+      renewedAt: user?.license?.renewedAt || null,
+      deactivatedAt: now.toISOString(),
+      expiresAt: user?.license?.expiresAt || null,
+    };
+
+    await db.collection("users_estetycloud").updateOne({ _id }, { $set: { license, updatedAt: now.toISOString() } });
+    const updated = await db.collection("users_estetycloud").findOne({ _id }, { projection: { password: 0 } });
+    return NextResponse.json(updated);
   } catch (e) {
-    console.error("[GET /users-estetycloud/by-email] ERROR:", e);
-    return NextResponse.json({ error: "server_error", detail: String(e) }, { status: 500 });
+    console.error("[POST deactivate license] ERROR:", e);
+    return NextResponse.json({ error: "db_error", detail: String(e) }, { status: 500 });
   }
 }

@@ -117,6 +117,19 @@ export async function POST(req) {
       city: payload.city ? String(payload.city).trim() : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      // 🔹 Licença (30 dias grátis por padrão)
+      license: (() => {
+        const now = new Date();
+        const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        return {
+          status: "active",
+          plan: "trial",
+          activatedAt: now.toISOString(),
+          renewedAt: null,
+          deactivatedAt: null,
+          expiresAt: expires.toISOString(),
+        };
+      })(),
     };
 
     const db = await getDb();

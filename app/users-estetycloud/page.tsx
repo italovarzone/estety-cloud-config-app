@@ -16,6 +16,14 @@ type User = {
   tenantIds: string[];
   directives: string[];
   type: 0 | 1;
+  license?: {
+    status?: 'active' | 'inactive';
+    plan?: string | undefined;
+    activatedAt?: string | null;
+    renewedAt?: string | null;
+    deactivatedAt?: string | null;
+    expiresAt?: string | null;
+  };
 };
 
 export default function UsersEstetyCloudPage() {
@@ -131,6 +139,56 @@ export default function UsersEstetyCloudPage() {
       setAvailableUserDirectives(Array.isArray(data) ? data : []);
     } catch {
       setAvailableUserDirectives([]);
+    }
+  }
+
+  // --------- Licença helpers ---------
+  function formatDate(v?: string | null, plan?: string | undefined, status?: string | undefined) {
+    if (!v) return "—";
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("pt-BR");
+  }
+  function calcDaysRemaining(expires?: string | null, plan?: string | undefined, status?: string | undefined) {
+    if (status === 'active' && (!expires || plan === 'lifetime')) return "Permanente";
+    if (!expires) return "—";
+    const e = new Date(expires).getTime();
+    if (!e) return "—";
+    const diff = Math.ceil((e - Date.now()) / (24 * 60 * 60 * 1000));
+    return String(diff < 0 ? 0 : diff);
+  }
+  async function renewLicense(period?: '30d' | '6m' | 'lifetime') {
+    if (!form._id) return;
+    try {
+      const res = await fetch(`/api/users-estetycloud/${form._id}/license/renew`, {
+        method: 'POST',
+        headers: { 'x-config-api-key': 'super-secreto', 'content-type': 'application/json' },
+        body: JSON.stringify(period ? (period === 'lifetime' ? { lifetime: true } : { period }) : {})
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
+      setForm((prev) => ({ ...prev, license: (data as any).license } as any));
+      let msg: string;
+      if (period === '6m') msg = 'Licença renovada por +6 meses.';
+      else if (period === 'lifetime') msg = 'Licença definida como vitalícia.';
+      else msg = 'Licença renovada por +30 dias.';
+      setSaveMsg({ type: 'ok', text: msg });
+      await load();
+    } catch (e: any) {
+      setSaveMsg({ type: 'error', text: String(e.message || e) });
+    }
+  }
+  async function deactivateLicense() {
+    if (!form._id) return;
+    try {
+      const res = await fetch(`/api/users-estetycloud/${form._id}/license/deactivate`, { method: 'POST', headers: { 'x-config-api-key': 'super-secreto' } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Erro ${res.status}`);
+      setForm((prev) => ({ ...prev, license: (data as any).license } as any));
+      setSaveMsg({ type: 'ok', text: 'Licença desativada.' });
+      await load();
+    } catch (e: any) {
+      setSaveMsg({ type: 'error', text: String(e.message || e) });
     }
   }
 
@@ -332,6 +390,54 @@ export default function UsersEstetyCloudPage() {
             </div>
           </div>
         </form>
+        {/* --- LICENÇA (somente edição) --- */}
+        {editOpen && (
+          <div className="mt-4 border rounded-2xl p-3 bg-zinc-50">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Licença</h3>
+              <div className="text-sm">
+                <span className={`px-2 py-0.5 rounded-full border ${form.license?.status === 'active' ? 'border-emerald-300 text-emerald-700' : 'border-red-300 text-red-700'}`}>
+                  {form.license?.status === 'active' ? 'Ativa' : 'Inativa'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <div className="text-zinc-500">Ativada em</div>
+                <div className="font-medium">{formatDate(form.license?.activatedAt)}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Última renovação</div>
+                <div className="font-medium">{formatDate(form.license?.renewedAt) || '—'}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Expira em</div>
+                <div className="font-medium">{form.license?.status === 'active' && (!form.license?.expiresAt || form.license?.plan === 'lifetime') ? 'Permanente' : formatDate(form.license?.expiresAt)}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500">Dias restantes</div>
+                <div className="font-medium">{calcDaysRemaining(form.license?.expiresAt, form.license?.plan, form.license?.status)}</div>
+              </div>
+            </div>
+            {form.license?.deactivatedAt && (
+              <div className="text-xs text-zinc-500 mt-1">Desativada em {formatDate(form.license?.deactivatedAt)}</div>
+            )}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button type="button" onClick={() => renewLicense('30d')} className="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                Renovar +30 dias
+              </button>
+              <button type="button" onClick={() => renewLicense('6m')} className="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                Renovar +6 meses
+              </button>
+              <button type="button" onClick={() => renewLicense('lifetime')} className="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50">
+                Tornar Vitalícia
+              </button>
+              <button type="button" onClick={deactivateLicense} className="px-3 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50">
+                Desativar
+              </button>
+            </div>
+          </div>
+        )}
       </ResponsiveDialog>
 
       {/* --- MODAL DIRETIVAS --- */}
