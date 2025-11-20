@@ -7,8 +7,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   try {
     const payload = await req.json();
     const db = await getDb();
-    const _id = new ObjectId(params.id);
-    const curr = await db.collection("users_estetycloud").findOne({ _id });
+
+    // Aceita tanto ObjectId (document _id) quanto userId (UUID) no path.
+    const rawId = String(params.id || '').trim();
+    let filter: any = null;
+    if (/^[0-9a-fA-F]{24}$/.test(rawId)) {
+      // Parece um ObjectId válido
+      try { filter = { _id: new ObjectId(rawId) }; } catch { /* fallback abaixo */ }
+    }
+    if (!filter) {
+      // Trata como userId
+      filter = { userId: rawId };
+    }
+
+    const curr = await db.collection("users_estetycloud").findOne(filter);
     if (!curr) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const upd: any = {};
@@ -48,13 +60,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (upd.email) {
       const exists = await db.collection("users_estetycloud").findOne({
         email: upd.email,
-        _id: { $ne: _id },
+        userId: { $ne: curr.userId },
+        _id: { $ne: curr._id }
       });
       if (exists) return NextResponse.json({ error: "email_conflict" }, { status: 409 });
     }
 
-    await db.collection("users_estetycloud").updateOne({ _id }, { $set: upd });
-    const updated = await db.collection("users_estetycloud").findOne({ _id }, { projection: { password: 0 } });
+    await db.collection("users_estetycloud").updateOne(filter, { $set: upd });
+    const updated = await db.collection("users_estetycloud").findOne(filter, { projection: { password: 0 } });
     return NextResponse.json(updated);
   } catch (e) {
     console.error("[PATCH /api/users-estetycloud/:id] ERROR:", e);
