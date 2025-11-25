@@ -54,7 +54,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
-    const required = ["name", "cep", "rua", "bairro", "cidade", "uf", "cnpjCpf", "numeroContato", "tenantRef"];
+    const required = ["name", "cep", "rua", "bairro", "cidade", "uf", "numeroContato", "tenantRef"];
     for (const r of required)
       if (!payload[r]) return new NextResponse(`Campo obrigatório: ${r}`, { status: 400 });
 
