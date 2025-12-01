@@ -150,12 +150,24 @@ export default function UsersEstetyCloudPage() {
     return d.toLocaleDateString("pt-BR");
   }
   function calcDaysRemaining(expires?: string | null, plan?: string | undefined, status?: string | undefined) {
+    if (status !== 'active') return "—"; // quando inativa, não há "dias restantes"
     if (status === 'active' && (!expires || plan === 'lifetime')) return "Permanente";
     if (!expires) return "—";
     const e = new Date(expires).getTime();
     if (!e) return "—";
     const diff = Math.ceil((e - Date.now()) / (24 * 60 * 60 * 1000));
     return String(diff < 0 ? 0 : diff);
+  }
+  function expiryLabel(lic?: User['license']) {
+    if (!lic) return '—';
+    if (lic.status === 'active') {
+      if (!lic.expiresAt || lic.plan === 'lifetime') return 'Permanente';
+      return formatDate(lic.expiresAt, lic.plan, lic.status);
+    }
+    // Inativa: exibe data de desativação se disponível; senão, expiração ou travessão
+    if (lic.deactivatedAt) return formatDate(lic.deactivatedAt, lic.plan, lic.status);
+    if (lic.expiresAt) return formatDate(lic.expiresAt, lic.plan, lic.status);
+    return '—';
   }
   async function renewLicense(period?: '30d' | '6m' | 'lifetime') {
     if (!form._id) return;
@@ -412,7 +424,7 @@ export default function UsersEstetyCloudPage() {
               </div>
               <div>
                 <div className="text-zinc-500">Expira em</div>
-                <div className="font-medium">{form.license?.status === 'active' && (!form.license?.expiresAt || form.license?.plan === 'lifetime') ? 'Permanente' : formatDate(form.license?.expiresAt)}</div>
+                <div className="font-medium">{expiryLabel(form.license)}</div>
               </div>
               <div>
                 <div className="text-zinc-500">Dias restantes</div>
