@@ -46,12 +46,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
-    const currentExp = user?.license?.expiresAt
-      ? new Date(user.license.expiresAt)
-      : null;
-
-    const base =
-      currentExp && currentExp.getTime() > now.getTime() ? currentExp : now;
+    // Base de renovação sempre a partir de agora, para refletir exatamente +30 dias
+    const base = now;
 
     let expiresAt: string | null = null;
     let plan: string | undefined = undefined;
@@ -69,7 +65,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         plan = "semestral";
       } else {
         newDate = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
-        plan = user?.license?.plan || "monthly";
+        plan = "monthly";
       }
 
       expiresAt = newDate.toISOString();

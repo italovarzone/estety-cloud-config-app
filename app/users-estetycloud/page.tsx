@@ -164,9 +164,7 @@ export default function UsersEstetyCloudPage() {
       if (!lic.expiresAt || lic.plan === 'lifetime') return 'Permanente';
       return formatDate(lic.expiresAt, lic.plan, lic.status);
     }
-    // Inativa: exibe data de desativação se disponível; senão, expiração ou travessão
-    if (lic.deactivatedAt) return formatDate(lic.deactivatedAt, lic.plan, lic.status);
-    if (lic.expiresAt) return formatDate(lic.expiresAt, lic.plan, lic.status);
+    // Inativa: não exibe expiração (pedido do cliente)
     return '—';
   }
   async function renewLicense(period?: '30d' | '6m' | 'lifetime') {

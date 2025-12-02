@@ -34,15 +34,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
+    // Inativar removendo qualquer expiração/planos, preservando "ativada em" e última renovação
     const license = {
-      status: "inactive",
+      status: "inactive" as const,
+      plan: null as any,
       activatedAt: user?.license?.activatedAt || null,
       renewedAt: user?.license?.renewedAt || null,
       deactivatedAt: now.toISOString(),
-      expiresAt: user?.license?.expiresAt || null,
+      expiresAt: null as any,
     };
 
-    await db.collection("users_estetycloud").updateOne({ _id }, { $set: { license, updatedAt: now.toISOString() } });
+    await db
+      .collection("users_estetycloud")
+      .updateOne({ _id }, { $set: { license, updatedAt: now.toISOString() } });
     const updated = await db.collection("users_estetycloud").findOne({ _id }, { projection: { password: 0 } });
     return NextResponse.json(updated);
   } catch (e) {
