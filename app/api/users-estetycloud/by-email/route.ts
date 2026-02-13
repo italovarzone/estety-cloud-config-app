@@ -51,7 +51,16 @@ export async function GET(req: Request) {
 
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-    return NextResponse.json(user, { headers: { "cache-control": "no-store" } });
+    const licenseStatus = String((user as any)?.license?.status || '').toLowerCase();
+    const licenseValid = licenseStatus === 'active';
+    const normalizedLicense = user?.license
+      ? {
+          ...(user as any).license,
+          expiresAt: licenseValid ? null : (user as any).license?.expiresAt ?? null,
+        }
+      : undefined;
+
+    return NextResponse.json({ ...user, license: normalizedLicense, licenseValid }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error("[GET /users-estetycloud/by-email] ERROR:", e);
     return NextResponse.json({ error: "server_error", detail: String(e) }, { status: 500 });

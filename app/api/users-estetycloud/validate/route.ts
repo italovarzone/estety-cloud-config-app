@@ -30,9 +30,17 @@ export async function POST(req: Request) {
     if (!user) return cors(NextResponse.json({ valid: false }, { status: 200 }));
 
     const matches = String(user.password).trim() === String(password).trim();
+    const licenseStatus = String((user as any)?.license?.status || '').toLowerCase();
+    const licenseValid = licenseStatus === 'active';
     return cors(
       NextResponse.json(
-        { valid: !!matches, userId: user.userId || null, tenants: user.tenantIds || [] },
+        {
+          valid: !!matches,
+          userId: user.userId || null,
+          tenants: user.tenantIds || [],
+          licenseStatus: licenseStatus || null,
+          licenseValid,
+        },
         { status: 200 }
       )
     );

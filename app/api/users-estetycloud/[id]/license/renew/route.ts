@@ -34,10 +34,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   try {
     const body = await req.json().catch(() => ({} as any));
-    const period: string | undefined = body?.period || body?.plan || body?.type;
-
-    const lifetime: boolean =
-      !!body?.lifetime || String(period).toLowerCase() === "lifetime";
+    const incomingPlan = String(body?.plan || body?.type || "subscription").trim().toLowerCase();
 
     const db = await getDb();
     const _id = new ObjectId(params.id);
@@ -46,38 +43,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
-    // Base de renovação sempre a partir de agora, para refletir exatamente +30 dias
-    const base = now;
-
-    let expiresAt: string | null = null;
-    let plan: string | undefined = undefined;
-
-    if (lifetime) {
-      expiresAt = null;
-      plan = "lifetime";
-    } else {
-      let newDate: Date;
-      const p = String(period || "").toLowerCase();
-
-      if (p === "6m" || p === "semester" || p === "semestral" || p === "6meses") {
-        newDate = new Date(base);
-        newDate.setMonth(newDate.getMonth() + 6);
-        plan = "semestral";
-      } else {
-        newDate = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
-        plan = "monthly";
-      }
-
-      expiresAt = newDate.toISOString();
-    }
 
     const license = {
       status: "active" as const,
-      plan,
+      plan: incomingPlan || "subscription",
       activatedAt: user?.license?.activatedAt || now.toISOString(),
       renewedAt: now.toISOString(),
       deactivatedAt: null,
-      expiresAt,
+      expiresAt: null,
     };
 
     await db
