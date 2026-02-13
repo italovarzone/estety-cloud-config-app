@@ -34,7 +34,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   try {
     const body = await req.json().catch(() => ({} as any));
-    const incomingPlan = String(body?.plan || body?.type || "subscription").trim().toLowerCase();
+    const incomingPlan = String(body?.plan || body?.type || body?.reason || "subscription").trim().toLowerCase();
 
     const db = await getDb();
     const _id = new ObjectId(params.id);

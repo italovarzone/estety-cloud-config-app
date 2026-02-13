@@ -5,6 +5,13 @@ import { randomUUID } from "crypto";
 import { getDb } from "../../../lib/mongo";
 
 const CONFIG_KEY = process.env.CONFIG_API_KEY || "";
+const FREE_PLAN_DIRECTIVES = [
+  "agendamentos",
+  "clientes",
+  "procedimentos",
+  "calendario",
+  "agenda_detalhada",
+];
 
 async function ensureApiKey(req) {
   try {
@@ -109,7 +116,9 @@ export async function POST(req) {
       email: String(payload.email).trim().toLowerCase(),
       password: String(payload.password).trim(),
       tenantIds: Array.isArray(payload.tenantIds) ? payload.tenantIds : [],
-      directives: Array.isArray(payload.directives) ? payload.directives : [],
+      directives: Array.isArray(payload.directives) && payload.directives.length
+        ? payload.directives
+        : FREE_PLAN_DIRECTIVES,
       type: payload.type === 1 ? 1 : 0,
       // 🔹 Campos PIX
       pix_key: payload.pix_key ? String(payload.pix_key).trim() : undefined,
