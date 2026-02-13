@@ -37,9 +37,21 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const incomingPlan = String(body?.plan || body?.type || body?.reason || "subscription").trim().toLowerCase();
 
     const db = await getDb();
-    const _id = new ObjectId(params.id);
+    const idParam = String(params.id || '').trim();
+    let user = null as any;
+    let filter = null as any;
 
-    const user = await db.collection("users_estetycloud").findOne({ _id });
+    if (ObjectId.isValid(idParam)) {
+      const _id = new ObjectId(idParam);
+      user = await db.collection("users_estetycloud").findOne({ _id });
+      if (user) filter = { _id };
+    }
+
+    if (!user) {
+      user = await db.collection("users_estetycloud").findOne({ userId: idParam });
+      if (user) filter = { userId: idParam };
+    }
+
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
@@ -55,11 +67,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     await db
       .collection("users_estetycloud")
-      .updateOne({ _id }, { $set: { license, updatedAt: now.toISOString() } });
+      .updateOne(filter, { $set: { license, updatedAt: now.toISOString() } });
 
     const updated = await db
       .collection("users_estetycloud")
-      .findOne({ _id }, { projection: { password: 0 } });
+      .findOne(filter, { projection: { password: 0 } });
 
     return NextResponse.json(updated);
   } catch (e) {

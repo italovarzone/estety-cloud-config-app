@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     const user = await db
       .collection("users_estetycloud")
       .findOne({ email }, { projection: {
-        _id: 0,
+        _id: 1,
         userId: 1,
         email: 1,
         tenantIds: 1,
