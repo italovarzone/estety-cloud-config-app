@@ -3,6 +3,31 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDb } from "../../../../../../lib/mongo";
 
+const FREE_PLAN_DIRECTIVES = [
+  "agendamentos",
+  "clientes",
+  "procedimentos",
+  "calendario",
+  "agenda_detalhada",
+];
+
+async function getProDirectives(db: any) {
+  try {
+    const list = await db
+      .collection("directives")
+      .find({}, { projection: { code: 1 } })
+      .toArray();
+
+    const codes = list
+      .map((item: any) => String(item?.code || "").trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(codes));
+  } catch {
+    return [];
+  }
+}
+
 async function ensureApiKey(req: Request) {
   try {
     // 🔥 CORRIGIDO: No Next.js App Router, headers devem ser lidos com .get()
@@ -55,6 +80,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
+    const proDirectives = await getProDirectives(db);
+    const nextDirectives = proDirectives.length
+      ? proDirectives
+      : Array.isArray(user?.directives) && user.directives.length
+        ? user.directives
+        : FREE_PLAN_DIRECTIVES;
 
     const license = {
       status: "active" as const,
@@ -67,7 +98,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     await db
       .collection("users_estetycloud")
-      .updateOne(filter, { $set: { license, updatedAt: now.toISOString() } });
+      .updateOne(
+        filter,
+        {
+          $set: {
+            license,
+            licenseValid: true,
+            directives: nextDirectives,
+            updatedAt: now.toISOString(),
+          },
+        }
+      );
 
     const updated = await db
       .collection("users_estetycloud")

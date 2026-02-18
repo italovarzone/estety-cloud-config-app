@@ -3,6 +3,14 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDb } from "../../../../../../lib/mongo";
 
+const FREE_PLAN_DIRECTIVES = [
+  "agendamentos",
+  "clientes",
+  "procedimentos",
+  "calendario",
+  "agenda_detalhada",
+];
+
 async function ensureApiKey(req: Request) {
   try {
     const headers = Object.fromEntries((req.headers as any).entries());
@@ -28,26 +36,52 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (unauthorized) return unauthorized;
 
   try {
+    const body = await req.json().catch(() => ({} as any));
     const db = await getDb();
-    const _id = new ObjectId(params.id);
-    const user = await db.collection("users_estetycloud").findOne({ _id });
+
+    const idParam = String(params.id || "").trim();
+    let user: any = null;
+    let filter: any = null;
+
+    if (ObjectId.isValid(idParam)) {
+      const _id = new ObjectId(idParam);
+      user = await db.collection("users_estetycloud").findOne({ _id });
+      if (user) filter = { _id };
+    }
+
+    if (!user) {
+      user = await db.collection("users_estetycloud").findOne({ userId: idParam });
+      if (user) filter = { userId: idParam };
+    }
+
     if (!user) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
     const now = new Date();
     // Inativar removendo qualquer expiração/planos, preservando "ativada em" e última renovação
     const license = {
       status: "inactive" as const,
-      plan: null as any,
+      plan: "free" as const,
       activatedAt: user?.license?.activatedAt || null,
       renewedAt: user?.license?.renewedAt || null,
       deactivatedAt: now.toISOString(),
       expiresAt: null as any,
+      reason: String(body?.reason || "subscription_deactivated"),
     };
 
     await db
       .collection("users_estetycloud")
-      .updateOne({ _id }, { $set: { license, updatedAt: now.toISOString() } });
-    const updated = await db.collection("users_estetycloud").findOne({ _id }, { projection: { password: 0 } });
+      .updateOne(
+        filter,
+        {
+          $set: {
+            license,
+            licenseValid: false,
+            directives: FREE_PLAN_DIRECTIVES,
+            updatedAt: now.toISOString(),
+          },
+        }
+      );
+    const updated = await db.collection("users_estetycloud").findOne(filter, { projection: { password: 0 } });
     return NextResponse.json(updated);
   } catch (e) {
     console.error("[POST deactivate license] ERROR:", e);
